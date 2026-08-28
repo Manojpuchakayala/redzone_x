@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -32,34 +32,24 @@ import {
   Car,
   Footprints,
   Clock,
-  Users,
-  AlertOctagon,
-  ShieldCheck,
-  Building
+  ShieldCheck
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 
-// Dynamic Map Camera Controller
+// Dynamic Camera Controller
 function MapCameraController({ center, waypoints, shouldFitBounds, onBoundsFitted }) {
   const map = useMap();
 
   useEffect(() => {
     if (center && Array.isArray(center) && center.length === 2) {
-      map.flyTo(center, map.getZoom() || 14, {
-        duration: 1.2,
-        easeLinearity: 0.25
-      });
+      map.flyTo(center, map.getZoom() || 14, { duration: 1.2, easeLinearity: 0.25 });
     }
   }, [center, map]);
 
   useEffect(() => {
     if (shouldFitBounds && waypoints && waypoints.length >= 2) {
       const bounds = waypoints.map(w => [w[0], w[1]]);
-      map.fitBounds(bounds, {
-        padding: [60, 60],
-        maxZoom: 16,
-        duration: 1.2
-      });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, duration: 1.2 });
       if (onBoundsFitted) onBoundsFitted();
     }
   }, [shouldFitBounds, waypoints, map, onBoundsFitted]);
@@ -67,46 +57,39 @@ function MapCameraController({ center, waypoints, shouldFitBounds, onBoundsFitte
   return null;
 }
 
-// Floating Pan & Zoom Controls Component
-function CustomMapControls({ onRecenterRoute, onLocateGPS, userLocation }) {
+// Floating Zoom Controls
+function CustomMapControls({ onRecenterRoute, onLocateGPS }) {
   const map = useMap();
 
   return (
-    <div className="absolute right-4 top-36 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
-      {/* Zoom In */}
+    <div className="absolute right-3 top-20 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
       <button
         onClick={() => map.zoomIn()}
         title="Zoom In (+)"
-        className="h-9 w-9 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+        className="h-8 w-8 rounded-lg bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-all text-xs"
       >
-        <Plus className="h-4 w-4" />
+        <Plus className="h-3.5 w-3.5" />
       </button>
-
-      {/* Zoom Out */}
       <button
         onClick={() => map.zoomOut()}
         title="Zoom Out (-)"
-        className="h-9 w-9 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+        className="h-8 w-8 rounded-lg bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-lg active:scale-95 transition-all text-xs"
       >
-        <Minus className="h-4 w-4" />
+        <Minus className="h-3.5 w-3.5" />
       </button>
-
-      {/* Recenter Entire Route */}
       <button
         onClick={onRecenterRoute}
-        title="Frame Entire Evacuation Route (Fit Bounds)"
-        className="h-9 w-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 flex items-center justify-center shadow-2xl active:scale-95 transition-all mt-1"
+        title="Recenter Route"
+        className="h-8 w-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 flex items-center justify-center shadow-lg active:scale-95 transition-all mt-0.5"
       >
-        <Navigation className="h-4 w-4" />
+        <Navigation className="h-3.5 w-3.5" />
       </button>
-
-      {/* Snap to User GPS */}
       <button
         onClick={onLocateGPS}
-        title="Snap to My Live GPS Position"
-        className="h-9 w-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/50 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+        title="My GPS Position"
+        className="h-8 w-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/50 flex items-center justify-center shadow-lg active:scale-95 transition-all"
       >
-        <LocateFixed className="h-4 w-4" />
+        <LocateFixed className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -132,20 +115,12 @@ export default function InteractiveMap() {
   const shelters = simulationData?.reliefShelters || [];
   const relocationPriorities = simulationData?.relocationPriorities || [];
 
-  // Population Breakdown Calculations
   const redZonePopulation = relocationPriorities
     .filter(h => h.relocationMandatory || h.vulnerabilityPriorityScore >= 0.55)
     .reduce((sum, h) => sum + (h.population || 0), 0) || summary.totalDisplacedPopulation || 3030;
 
-  const orangeZonePopulation = relocationPriorities
-    .filter(h => !h.relocationMandatory && h.vulnerabilityPriorityScore < 0.55)
-    .reduce((sum, h) => sum + (h.population || 0), 0) || 1250;
-
   const totalShelterCapacity = shelters.reduce((s, sh) => s + (sh.capacity || 0), 0) || summary.totalShelterCapacity || 5750;
-  const currentShelterOccupancy = shelters.reduce((s, sh) => s + (sh.currentOccupancy || 200), 0) || 450;
-  const safeHeadroomSlots = Math.max(0, totalShelterCapacity - currentShelterOccupancy);
 
-  // Parse Coords Robust Helper
   const parseCoords = (c, fallback = [11.5325, 76.1362]) => {
     if (!c) return fallback;
     if (Array.isArray(c) && c.length >= 2 && !isNaN(Number(c[0])) && !isNaN(Number(c[1]))) {
@@ -165,13 +140,11 @@ export default function InteractiveMap() {
 
   useEffect(() => {
     if (region.center) {
-      const c = parseCoords(region.center, [11.5325, 76.1362]);
-      setMapCenter(c);
+      setMapCenter(parseCoords(region.center, [11.5325, 76.1362]));
       setShouldFitBounds(true);
     }
   }, [region.center]);
 
-  // Active Origin: User GPS or Highest Priority Red-Zone Habitation
   const originHab = relocationPriorities && relocationPriorities.length > 0 ? relocationPriorities[0] : null;
   const originCoords = userLocation
     ? parseCoords(userLocation, [11.546, 76.132])
@@ -179,13 +152,11 @@ export default function InteractiveMap() {
     ? parseCoords(originHab.coordinates, [11.546, 76.132])
     : [11.546, 76.132];
 
-  // Nearest Safe Green Sanctuary Shelter
   const safeShelter = shelters && shelters.length > 0 ? shelters[0] : null;
   const targetCoords = safeShelter
     ? parseCoords(safeShelter.coordinates, [11.552, 76.122])
     : [11.552, 76.122];
 
-  // CLEAR GPS ROUTE WAYPOINTS
   const primaryWaypoints = [
     originCoords,
     [Number(originCoords[0]) + 0.0035, Number(originCoords[1]) - 0.0028],
@@ -204,73 +175,52 @@ export default function InteractiveMap() {
 
   const activeWaypoints = isRoadCutoffSimulated ? detourWaypoints : primaryWaypoints;
 
-  // Multi-Modal Transit Time Data Table
   const transitTimes = {
     BUS: {
-      label: 'Evacuation Bus (Convoy)',
+      label: 'Bus',
       icon: Bus,
-      directTime: '16 mins',
-      detourTime: '22 mins',
-      speed: '18 km/h',
+      directTime: '16m',
+      detourTime: '22m',
       googleMode: 'driving',
       voiceText: isRoadCutoffSimulated
-        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Meppadi Safe Sanctuary."
-        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary. Green corridor is clear."
+        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Safe Sanctuary."
+        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary."
     },
     CYCLE: {
-      label: 'Bicycle & 2-Wheeler',
+      label: 'Cycle',
       icon: Bike,
-      directTime: '21 mins',
-      detourTime: '28 mins',
-      speed: '12 km/h',
+      directTime: '21m',
+      detourTime: '28m',
       googleMode: 'two_wheeler',
       voiceText: isRoadCutoffSimulated
         ? "Bicycle and two-wheeler route active on High-Ridge Trail. 28 minutes to Safe Sanctuary."
-        : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary via safe valley road."
+        : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary."
     },
     CAR: {
-      label: 'Car & Ambulance',
+      label: 'Car',
       icon: Car,
-      directTime: '11 mins',
-      detourTime: '14 mins',
-      speed: '35 km/h',
+      directTime: '11m',
+      detourTime: '14m',
       googleMode: 'driving',
       voiceText: isRoadCutoffSimulated
-        ? "Emergency Vehicle route active via Elevated High-Ridge Bypass. 14 minutes to Meppadi Safe Sanctuary."
-        : "Car and Ambulance emergency route active. Proceed 350 meters on Green Valley Corridor. 11 minutes to destination."
+        ? "Emergency Vehicle route active via Elevated Bypass. 14 minutes to Meppadi Safe Sanctuary."
+        : "Car and Ambulance emergency route active. 11 minutes to Safe Sanctuary."
     },
     WALK: {
-      label: 'Foot Evacuation',
+      label: 'Walk',
       icon: Footprints,
-      directTime: '48 mins',
-      detourTime: '62 mins',
-      speed: '4.2 km/h',
+      directTime: '48m',
+      detourTime: '62m',
       googleMode: 'walking',
       voiceText: isRoadCutoffSimulated
-        ? "Pedestrian foot evacuation corridor active on high ridge footpath. 62 minutes to Safe Sanctuary."
-        : "Pedestrian foot evacuation corridor active. 48 minutes to Meppadi Safe Sanctuary. Stay in grouped formation."
+        ? "Pedestrian foot evacuation corridor active on high ridge. 62 minutes to Safe Sanctuary."
+        : "Pedestrian foot evacuation corridor active. 48 minutes to Meppadi Safe Sanctuary."
     }
   };
 
   const currentTransit = transitTimes[transitMode] || transitTimes.BUS;
   const currentEta = isRoadCutoffSimulated ? currentTransit.detourTime : currentTransit.directTime;
   const currentDistance = isRoadCutoffSimulated ? '4.1 km' : '3.4 km';
-
-  const primarySteps = [
-    { distance: '350 m', icon: CornerUpRight, text: 'Head Northwest on Chooralmala Main Line toward Bridge #2', road: 'Chooralmala Sector Bypass' },
-    { distance: '1.2 km', icon: ArrowUp, text: 'Continue straight along Green Valley Safe Corridor (Away from Red Ridge)', road: 'State Highway 59' },
-    { distance: '850 m', icon: CornerUpLeft, text: 'Turn slight Left onto Meppadi Sanctuary Approach Road', road: 'Sanctuary Access Spur' },
-    { distance: 'Target', icon: MapPin, text: `Arrive at ${safeShelter?.name || 'Meppadi Safe Sanctuary'}`, road: 'Safe Green Sector (0% Inundation)' }
-  ];
-
-  const detourSteps = [
-    { distance: '200 m', icon: CornerUpRight, text: '⚠️ PRIMARY ROAD BLOCKED! Divert East onto High-Ridge Bypass', road: 'Emergency Ridge Line' },
-    { distance: '1.8 km', icon: ArrowUp, text: 'Traverse elevated rock foundation corridor (Elev. +420m)', road: 'Ridge Bypass Route' },
-    { distance: '600 m', icon: CornerUpLeft, text: 'Descend North spur into Greenfield Sanctuary Gate #1', road: 'North Sanctuary Spur' },
-    { distance: 'Target', icon: MapPin, text: 'Arrive at Safe Green Sanctuary (Detour Complete)', road: 'Safe Zone' }
-  ];
-
-  const activeSteps = isRoadCutoffSimulated ? detourSteps : primarySteps;
 
   const handleVoiceGuidance = () => {
     if ('speechSynthesis' in window) {
@@ -291,190 +241,159 @@ export default function InteractiveMap() {
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 font-sans select-none">
       
-      {/* 1. TOP NAVIGATION HEADER & MULTI-MODAL TRANSIT TIME BAR */}
-      <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
+      {/* 1. ULTRA-COMPACT SLIM TOP NAVIGATION HUD (MAXIMIZING MAP VIEWPORT) */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-[1000] flex flex-col gap-1.5 pointer-events-none">
         
-        {/* Navigation Banner with Prominent Bus & Bicycle Times */}
-        <div className="bg-slate-950/98 backdrop-blur-xl text-white p-3 sm:p-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-3">
+        {/* Streamlined Single-Row Navigation Bar */}
+        <div className="bg-slate-950/95 backdrop-blur-xl text-white px-3 py-2 rounded-xl shadow-xl border border-slate-700/80 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-2">
           
-          {/* Active Navigation Step */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="h-11 w-11 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-inner">
-              <CornerUpRight className="h-6 w-6 stroke-[2.5]" />
+          {/* Active Navigation Step & Mode ETA */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-7 w-7 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+              <CornerUpRight className="h-4 w-4 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
-              <div className="text-[11px] font-mono font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
-                <span>{isRoadCutoffSimulated ? '⚠️ HIGH-RIDGE DETOUR' : '🟢 SAFE SANCTUARY CORRIDOR'}</span>
-              </div>
-              <div className="text-xs sm:text-sm font-black text-white leading-tight truncate">
-                {activeSteps[0].text}
-              </div>
-              <div className="text-[11px] text-slate-300 font-mono flex items-center gap-2">
-                <span className="text-emerald-400 font-black text-xs">{currentEta}</span>
-                <span className="text-slate-400 font-bold">({currentDistance})</span>
-                <span>•</span>
-                <span className="text-amber-300 font-bold">{currentTransit.label} Active</span>
+              <div className="flex items-center gap-1.5 text-xs font-black text-white leading-none truncate">
+                <span className="text-emerald-400">{isRoadCutoffSimulated ? '⚠️ Detour:' : '🟢 Escape:'}</span>
+                <span className="truncate">{originHab?.name || 'Red Zone'} ➔ {safeShelter?.name || 'Sanctuary'}</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-mono text-[10px] border border-emerald-800">
+                  {currentEta} • {currentDistance}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* LARGE MULTI-MODAL TRANSIT BUTTONS (BUS, BICYCLE, CAR, WALK) */}
-          <div className="flex items-center bg-slate-900/90 border border-slate-700 p-1 rounded-xl gap-1.5 shadow-inner">
+          {/* COMPACT TRANSIT MODE SWITCHER (SINGLE INSTANCE) */}
+          <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-lg gap-0.5 text-xs">
             
-            {/* Bus Time Button */}
+            {/* Bus Mode */}
             <button
               onClick={() => setTransitMode('BUS')}
-              title="Evacuation Bus Convoy Time"
-              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
+              title="Evacuation Bus Convoy"
+              className={`px-2 py-1 rounded-md font-bold text-[11px] flex items-center gap-1 transition-all ${
                 transitMode === 'BUS'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/40 ring-2 ring-amber-400 scale-105'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Bus className="h-4 w-4 text-amber-300 flex-shrink-0" />
-              <span>🚌 Bus: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '22m' : '16m'}</strong></span>
+              <Bus className="h-3 w-3 text-amber-300" />
+              <span>Bus: <strong className="font-mono">{isRoadCutoffSimulated ? '22m' : '16m'}</strong></span>
             </button>
 
-            {/* Bicycle Time Button */}
+            {/* Cycle Mode */}
             <button
               onClick={() => setTransitMode('CYCLE')}
-              title="Bicycle & 2-Wheeler Route Time"
-              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
+              title="Bicycle / 2-Wheeler Route"
+              className={`px-2 py-1 rounded-md font-bold text-[11px] flex items-center gap-1 transition-all ${
                 transitMode === 'CYCLE'
-                  ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 ring-2 ring-cyan-400 scale-105'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-cyan-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Bike className="h-4 w-4 text-cyan-300 flex-shrink-0" />
-              <span>🚲 Cycle: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '28m' : '21m'}</strong></span>
+              <Bike className="h-3 w-3 text-cyan-300" />
+              <span>Cycle: <strong className="font-mono">{isRoadCutoffSimulated ? '28m' : '21m'}</strong></span>
             </button>
 
-            {/* Car Time Button */}
+            {/* Car Mode */}
             <button
               onClick={() => setTransitMode('CAR')}
-              title="Car & Emergency Ambulance Time"
-              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
+              title="Car / Ambulance"
+              className={`px-2 py-1 rounded-md font-bold text-[11px] flex items-center gap-1 transition-all ${
                 transitMode === 'CAR'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-400 scale-105'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Car className="h-4 w-4 text-emerald-300 flex-shrink-0" />
-              <span>🚗 Car: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '14m' : '11m'}</strong></span>
+              <Car className="h-3 w-3 text-emerald-300" />
+              <span>Car: <strong className="font-mono">{isRoadCutoffSimulated ? '14m' : '11m'}</strong></span>
             </button>
 
-            {/* Walk Time Button */}
+            {/* Walk Mode */}
             <button
               onClick={() => setTransitMode('WALK')}
-              title="Pedestrian Foot Evacuation Time"
-              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
+              title="Foot Evacuation"
+              className={`px-2 py-1 rounded-md font-bold text-[11px] flex items-center gap-1 transition-all ${
                 transitMode === 'WALK'
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40 ring-2 ring-purple-400 scale-105'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Footprints className="h-4 w-4 text-purple-300 flex-shrink-0" />
-              <span>🚶 Walk: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '62m' : '48m'}</strong></span>
+              <Footprints className="h-3 w-3 text-purple-300" />
+              <span>Walk: <strong className="font-mono">{isRoadCutoffSimulated ? '62m' : '48m'}</strong></span>
             </button>
-
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          {/* Quick Actions & Layer Buttons */}
+          <div className="flex items-center gap-1.5">
             <button
               onClick={handleVoiceGuidance}
-              title="Voice SOS Navigation Guidance"
-              className={`px-3.5 py-2 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+              title="Voice SOS Guidance"
+              className={`p-1.5 px-2 rounded-lg font-bold text-[11px] flex items-center gap-1 border transition-all ${
                 isVoiceActive
                   ? 'bg-amber-500 text-slate-950 border-amber-300 animate-pulse'
-                  : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
               }`}
             >
-              <Volume2 className="h-4 w-4 text-amber-400" />
-              <span className="hidden sm:inline">{isVoiceActive ? 'Speaking...' : 'Voice SOS'}</span>
+              <Volume2 className="h-3.5 w-3.5 text-amber-400" />
+              <span className="hidden md:inline">{isVoiceActive ? 'Voice On' : 'Voice SOS'}</span>
             </button>
 
             <button
               onClick={openGoogleMapsIntent}
-              title="Open Live GPS Route in Google Maps"
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+              title="Open in Google Maps App"
+              className="p-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center gap-1 shadow-md transition-all"
             >
-              <ExternalLink className="h-4 w-4" />
-              <span className="hidden sm:inline">Google GPS</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">Google GPS</span>
             </button>
+
+            {/* Compact Layer Switcher */}
+            <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-lg text-[10px] font-bold">
+              <button
+                onClick={() => setMapLayer('SATELLITE')}
+                title="Esri HD Satellite"
+                className={`px-2 py-0.5 rounded transition-all ${mapLayer === 'SATELLITE' ? 'bg-cyan-600 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+              >
+                🛰️ Sat
+              </button>
+              <button
+                onClick={() => setMapLayer('GOOGLE')}
+                title="Google Hybrid"
+                className={`px-2 py-0.5 rounded transition-all ${mapLayer === 'GOOGLE' ? 'bg-blue-600 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+              >
+                🚀 Hybrid
+              </button>
+              <button
+                onClick={() => setMapLayer('TOPO')}
+                title="3D Terrain"
+                className={`px-2 py-0.5 rounded transition-all ${mapLayer === 'TOPO' ? 'bg-amber-600 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+              >
+                ⛰️ Topo
+              </button>
+              <button
+                onClick={() => setMapLayer('STREET')}
+                title="Street Map"
+                className={`px-2 py-0.5 rounded transition-all ${mapLayer === 'STREET' ? 'bg-emerald-600 text-white font-black' : 'text-slate-400 hover:text-white'}`}
+              >
+                🗺️ Street
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* 🌟 ZONE POPULATION CENSUS & SATELLITE HUD (RED ZONE & SAFE ZONE POPULATION) */}
-        <div className="flex items-center justify-between pointer-events-auto flex-wrap gap-2">
-          
-          {/* Live Zone Population Census Pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            
-            {/* Red Zone Population */}
-            <div className="bg-rose-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-rose-700/80 text-[11px] font-bold text-rose-200 flex items-center gap-1.5 shadow-lg">
-              <span className="h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
-              <span>🔴 Red Zone Population: <strong className="font-mono text-white text-xs">{redZonePopulation.toLocaleString()}</strong> Citizens</span>
-            </div>
-
-            {/* Orange Zone Population */}
-            <div className="bg-amber-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-700/80 text-[11px] font-bold text-amber-200 flex items-center gap-1.5 shadow-lg">
-              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
-              <span>🟠 Orange Watch: <strong className="font-mono text-white text-xs">{orangeZonePopulation.toLocaleString()}</strong> Citizens</span>
-            </div>
-
-            {/* Safe Zone Sanctuary Capacity & Occupancy */}
-            <div className="bg-emerald-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-700/80 text-[11px] font-bold text-emerald-200 flex items-center gap-1.5 shadow-lg">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>🟢 Safe Sanctuary Capacity: <strong className="font-mono text-white text-xs">{totalShelterCapacity.toLocaleString()}</strong> Slots ({safeHeadroomSlots.toLocaleString()} Free)</span>
-            </div>
-
+        {/* Minimal Population Strip */}
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          <div className="bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-800 text-[10px] font-bold text-slate-300 flex items-center gap-2 shadow-md">
+            <span className="text-rose-400 flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+              Red Zone: <strong className="text-white font-mono">{redZonePopulation.toLocaleString()}</strong> Pers
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="text-emerald-400 flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3" />
+              Safe Capacity: <strong className="text-white font-mono">{totalShelterCapacity.toLocaleString()}</strong> Slots
+            </span>
           </div>
-
-          {/* Map Layer Switcher Pills */}
-          <div className="bg-slate-950/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 flex items-center gap-1 shadow-lg text-[10px] font-bold">
-            <button
-              onClick={() => setMapLayer('SATELLITE')}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'SATELLITE' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Satellite className="h-3 w-3" />
-              <span>🛰️ HD Satellite</span>
-            </button>
-
-            <button
-              onClick={() => setMapLayer('GOOGLE')}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'GOOGLE' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Compass className="h-3 w-3 text-cyan-300" />
-              <span>🚀 Hybrid</span>
-            </button>
-
-            <button
-              onClick={() => setMapLayer('TOPO')}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'TOPO' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Mountain className="h-3 w-3" />
-              <span>⛰️ Terrain</span>
-            </button>
-
-            <button
-              onClick={() => setMapLayer('STREET')}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'STREET' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <MapIcon className="h-3 w-3" />
-              <span>🗺️ Streets</span>
-            </button>
-          </div>
-
         </div>
 
       </div>
@@ -494,7 +413,6 @@ export default function InteractiveMap() {
         zoomControl={false}
         className="w-full h-full z-10 cursor-grab active:cursor-grabbing"
       >
-        {/* Dynamic Camera Controller */}
         <MapCameraController
           center={mapCenter}
           waypoints={activeWaypoints}
@@ -502,14 +420,12 @@ export default function InteractiveMap() {
           onBoundsFitted={() => setShouldFitBounds(false)}
         />
 
-        {/* Floating Pan/Zoom & Recenter Route Controls */}
         <CustomMapControls
           onRecenterRoute={() => setShouldFitBounds(true)}
           onLocateGPS={async () => {
             await detectUserLocation();
             setShouldFitBounds(true);
           }}
-          userLocation={userLocation}
         />
 
         {/* Layer 1: ESRI Ultra HD Satellite with Auto-Scaling & Road Overlays */}
@@ -566,45 +482,43 @@ export default function InteractiveMap() {
           />
         )}
 
-        {/* Hazard Risk Polygons with Population Numbers */}
+        {/* Small, Compact Hazard Risk Polygons (Clear Satellite View) */}
         {hazardZones.map((zone) => {
           const lat = Number(zone.lat || 11.5325);
           const lon = Number(zone.lon || 76.1362);
-          const zonePop = zone.population || Math.round((zone.radiusMeters || 600) * 2.2);
           const isRed = zone.severity === 'CRITICAL' || zone.colorHex === '#ef4444' || zone.color === '#ef4444';
+          const radius = Math.min((zone.radiusMeters || 600) * 0.4, 220); // Small, compact radius
 
           return (
             <Circle
               key={zone.id}
               center={[lat, lon]}
-              radius={zone.radiusMeters || 600}
+              radius={radius}
               pathOptions={{
                 color: zone.color || (isRed ? '#ef4444' : '#f59e0b'),
                 fillColor: zone.color || (isRed ? '#ef4444' : '#f59e0b'),
-                fillOpacity: isRed ? 0.45 : 0.3,
-                weight: 2,
+                fillOpacity: isRed ? 0.25 : 0.15,
+                weight: 1.5,
               }}
             >
-              <Tooltip permanent direction="center" opacity={0.9}>
-                <div className="text-center font-black text-[10px] text-slate-900 bg-white/95 px-2 py-0.5 rounded-md shadow-md border border-slate-400">
-                  <span>{zone.name}</span>
-                  <span className="block text-red-600 font-mono">👥 {zonePop.toLocaleString()} Citizens Living</span>
+              <Tooltip direction="top" offset={[0, -5]}>
+                <div className="font-bold text-[10px] text-slate-900">
+                  <span className="text-red-600 font-black">{zone.name}</span>
+                  <span className="block text-slate-700">👥 {zone.population || 1200} Citizens Living Here</span>
                 </div>
               </Tooltip>
-
               <Popup>
                 <div className="p-1 space-y-1 text-xs">
-                  <strong className="block text-red-600 font-black text-sm">{zone.name}</strong>
-                  <p className="text-slate-800 font-bold">👥 Population Living Here: <span className="text-red-600">{zonePop.toLocaleString()} Citizens</span></p>
-                  <p className="text-slate-700">MHI Susceptibility Risk: <strong>{Math.round((zone.mhi || 0.8) * 100)}%</strong></p>
-                  <p className="text-slate-600 text-[10px]">{zone.description || 'Critical Catchment Hazard Sector'}</p>
+                  <strong className="block text-red-600 font-black">{zone.name}</strong>
+                  <p className="text-slate-800">👥 Population: <strong>{zone.population || 1200} Citizens</strong></p>
+                  <p className="text-slate-700">MHI Susceptibility: {Math.round((zone.mhi || 0.8) * 100)}%</p>
                 </div>
               </Popup>
             </Circle>
           );
         })}
 
-        {/* Habitation Settlements with Exact Demographic Fingerprint Badges */}
+        {/* Settlement Markers */}
         {relocationPriorities.map((hab) => {
           const coords = parseCoords(hab.coordinates);
           const fp = hab.fingerprint || {};
@@ -612,160 +526,104 @@ export default function InteractiveMap() {
             <CircleMarker
               key={hab.id}
               center={coords}
-              radius={8}
+              radius={6}
               pathOptions={{
                 color: '#ffffff',
                 fillColor: hab.relocationMandatory ? '#dc2626' : '#f59e0b',
                 fillOpacity: 1,
-                weight: 2
+                weight: 1.5
               }}
             >
-              <Tooltip direction="top" offset={[0, -8]}>
-                <div className="text-xs font-bold text-slate-900 p-1">
-                  <strong>{hab.name}</strong>
-                  <div className="text-rose-700">👥 {hab.population} Citizens ({fp.elderly || 20} Elderly, {fp.infants || 15} Infants)</div>
+              <Tooltip direction="top" offset={[0, -6]}>
+                <div className="text-[10px] font-bold text-slate-900">
+                  <strong>{hab.name}</strong> (Pop: {hab.population})
                 </div>
               </Tooltip>
             </CircleMarker>
           );
         })}
 
-        {/* ========================================================================= */}
-        {/* CRYSTAL-CLEAR MULTI-LAYER GPS EVACUATION NAVIGATION ROUTE (HIGH CONTRAST) */}
-        {/* ========================================================================= */}
-
-        {/* Layer A: Outer Route Shadow / High-Contrast Casing */}
+        {/* Multi-Layer High-Contrast GPS Navigation Route Line */}
         <Polyline
           positions={activeWaypoints}
-          pathOptions={{
-            color: '#022c22',
-            weight: 12,
-            opacity: 0.9,
-          }}
+          pathOptions={{ color: '#022c22', weight: 10, opacity: 0.85 }}
         />
-
-        {/* Layer B: Core Bright GPS Solid Navigation Ribbon */}
         <Polyline
           positions={activeWaypoints}
-          pathOptions={{
-            color: isRoadCutoffSimulated ? '#f59e0b' : '#10b981',
-            weight: 8,
-            opacity: 1.0,
-          }}
+          pathOptions={{ color: isRoadCutoffSimulated ? '#f59e0b' : '#10b981', weight: 6, opacity: 1.0 }}
         />
-
-        {/* Layer C: Inner White Directional Pulse Dash (GPS Convoy Flow) */}
         <Polyline
           positions={activeWaypoints}
-          pathOptions={{
-            color: '#ffffff',
-            weight: 3,
-            opacity: 0.95,
-            dashArray: '8, 12',
-          }}
+          pathOptions={{ color: '#ffffff', weight: 2, opacity: 0.95, dashArray: '6, 10' }}
         />
 
-        {/* Simulated Road Blockade Marker */}
+        {/* Blockade Marker if Detour Active */}
         {isRoadCutoffSimulated && (
           <CircleMarker
             center={primaryWaypoints[2]}
-            radius={14}
-            pathOptions={{ color: '#ef4444', fillColor: '#7f1d1d', fillOpacity: 1, weight: 3 }}
+            radius={10}
+            pathOptions={{ color: '#ef4444', fillColor: '#7f1d1d', fillOpacity: 1, weight: 2 }}
           >
-            <Tooltip permanent direction="top" offset={[0, -10]}>
-              <span className="font-bold text-red-600 text-xs">🛑 ROAD BLOCKED</span>
+            <Tooltip permanent direction="top" offset={[0, -8]}>
+              <span className="font-black text-red-600 text-[10px]">🛑 BLOCKED</span>
             </Tooltip>
-            <Popup>
-              <div className="p-1 text-xs">
-                <strong className="text-red-600 block">🛑 Main Road Blocked by Debris Flow</strong>
-                <p className="text-slate-600 text-[10px]">Traffic diverted via High-Ridge Bypass Line.</p>
-              </div>
-            </Popup>
           </CircleMarker>
         )}
 
-        {/* Origin Marker (Red Zone Danger) */}
+        {/* Start Point Pin */}
         <CircleMarker
           center={originCoords}
-          radius={12}
-          pathOptions={{ color: '#ffffff', fillColor: '#dc2626', fillOpacity: 1, weight: 3 }}
+          radius={9}
+          pathOptions={{ color: '#ffffff', fillColor: '#dc2626', fillOpacity: 1, weight: 2 }}
         >
-          <Tooltip permanent direction="top" offset={[0, -12]}>
-            <span className="font-black text-rose-700 text-xs">🚨 START: {originHab?.name || 'Red Hazard Zone'} (Pop: {originHab?.population || 310})</span>
+          <Tooltip permanent direction="top" offset={[0, -10]}>
+            <span className="font-black text-rose-700 text-[10px]">🚨 START (Pop: {originHab?.population || 310})</span>
           </Tooltip>
-          <Popup>
-            <div className="p-1 text-xs font-bold text-red-600">
-              🔴 START: Evacuation Point ({originHab?.name || 'Red Hazard Zone'})
-              <div className="text-slate-800 text-[11px] font-normal mt-1">Population: {originHab?.population || 310} Citizens</div>
-            </div>
-          </Popup>
         </CircleMarker>
 
-        {/* Destination Shelter Marker (Green Zone Safe Sanctuary) */}
+        {/* Destination Pin */}
         <CircleMarker
           center={targetCoords}
-          radius={14}
-          pathOptions={{ color: '#ffffff', fillColor: '#059669', fillOpacity: 1, weight: 4 }}
+          radius={10}
+          pathOptions={{ color: '#ffffff', fillColor: '#059669', fillOpacity: 1, weight: 2.5 }}
         >
-          <Tooltip permanent direction="top" offset={[0, -14]}>
-            <span className="font-black text-emerald-700 text-xs">🟢 DESTINATION: {safeShelter?.name || 'Safe Sanctuary'} (Cap: {safeShelter?.capacity || 3200})</span>
+          <Tooltip permanent direction="top" offset={[0, -11]}>
+            <span className="font-black text-emerald-700 text-[10px]">🟢 DESTINATION ({safeShelter?.name?.slice(0, 16) || 'Sanctuary'})</span>
           </Tooltip>
-          <Popup>
-            <div className="p-1 text-xs space-y-1">
-              <strong className="text-emerald-700 block text-sm">🟢 TARGET: {safeShelter?.name || 'Safe Sanctuary'}</strong>
-              <p className="text-slate-700 font-bold">Total Shelter Capacity: <span className="text-emerald-600">{safeShelter?.capacity || 3200} Citizens</span></p>
-              <p className="text-slate-600">Current Occupants: {safeShelter?.currentOccupancy || 450} Pers</p>
-            </div>
-          </Popup>
         </CircleMarker>
 
       </MapContainer>
 
-      {/* 3. BOTTOM CONTROLS & MULTI-MODAL SUMMARY BAR */}
-      <div className="absolute bottom-3 left-3 right-3 z-[1000] flex flex-col sm:flex-row items-center justify-between gap-2 pointer-events-none">
+      {/* 3. MINIMAL CLEAN BOTTOM BAR (NO DUPLICATE TRAVEL TIMES) */}
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 z-[1000] flex items-center justify-between gap-2 pointer-events-none">
         
         {/* Road Cutoff Detour Switcher */}
-        <div className="bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-slate-700 text-white shadow-xl pointer-events-auto flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className={`h-4 w-4 ${isRoadCutoffSimulated ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
-            <span className="text-xs font-bold text-slate-200">
-              {isRoadCutoffSimulated ? '⚠️ Mid-Transit Road Blockade Active' : 'Road Status: Main Corridor Clear'}
-            </span>
-          </div>
-
+        <div className="bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-white shadow-lg pointer-events-auto flex items-center gap-2.5">
+          <ShieldAlert className={`h-3.5 w-3.5 ${isRoadCutoffSimulated ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
+          <span className="text-[11px] font-bold text-slate-200">
+            {isRoadCutoffSimulated ? '⚠️ Detour Active (High-Ridge)' : 'Road: Clear'}
+          </span>
           <button
             onClick={() => {
               setIsRoadCutoffSimulated(!isRoadCutoffSimulated);
               setShouldFitBounds(true);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 ${
+            className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-md active:scale-95 ${
               isRoadCutoffSimulated
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                : 'bg-amber-600 hover:bg-amber-500 text-white'
             }`}
           >
-            <span>{isRoadCutoffSimulated ? '✓ Clear Blockade (Use Main Road)' : '⚡ Simulate Road Blockade'}</span>
+            <span>{isRoadCutoffSimulated ? '✓ Clear Blockade' : '⚡ Simulate Blockade'}</span>
           </button>
         </div>
 
-        {/* Multi-Modal Mode ETAs Pill */}
-        <div className="bg-slate-950/98 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-slate-700 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-2xl flex-wrap">
-          <span className="text-amber-400 font-black flex items-center gap-1.5 text-xs">
-            <Clock className="h-4 w-4" />
-            <span>ESTIMATED TRAVEL TIMES:</span>
-          </span>
-          <span className="text-white font-bold bg-amber-950/70 border border-amber-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
-            <Bus className="h-3.5 w-3.5 text-amber-400" /> Bus: <strong>{isRoadCutoffSimulated ? '22m' : '16m'}</strong>
-          </span>
-          <span className="text-white font-bold bg-cyan-950/70 border border-cyan-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
-            <Bike className="h-3.5 w-3.5 text-cyan-400" /> Bicycle: <strong>{isRoadCutoffSimulated ? '28m' : '21m'}</strong>
-          </span>
-          <span className="text-white font-bold bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
-            <Car className="h-3.5 w-3.5 text-emerald-400" /> Car: <strong>{isRoadCutoffSimulated ? '14m' : '11m'}</strong>
-          </span>
-          <span className="text-white font-bold bg-purple-950/70 border border-purple-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
-            <Footprints className="h-3.5 w-3.5 text-purple-400" /> Walk: <strong>{isRoadCutoffSimulated ? '62m' : '48m'}</strong>
-          </span>
+        {/* Minimal Route Distance Pill */}
+        <div className="bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white text-[11px] font-mono flex items-center gap-2 pointer-events-auto shadow-md">
+          <span className="text-slate-400">Route:</span>
+          <span className="text-emerald-400 font-bold">{currentDistance}</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-amber-400 font-bold">{currentEta} ({currentTransit.label})</span>
         </div>
 
       </div>

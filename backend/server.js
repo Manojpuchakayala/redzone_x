@@ -8,9 +8,24 @@ const apiRoutes = require("./routes/apiRoutes");
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Root health & diagnostic check for Render port scanner
+app.get("/", (req, res) => {
+  res.status(200).json({
+    status: "ONLINE",
+    service: "RED-ZONE X Emergency Backend API",
+    version: "2.5.0",
+    docs: "/api/health"
+  });
+});
 
 app.use("/api", apiRoutes);
 
@@ -36,25 +51,21 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-let PORT = parseInt(process.env.PORT, 10) || 5001;
+const PORT = process.env.PORT || 5001;
 
-async function bootstrap() {
-  await connectDB();
-  await autoSeedDatabase();
+// Start server immediately on 0.0.0.0 so Render detects port binding in <1s
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 RED-ZONE X Backend running on 0.0.0.0:${PORT}`);
+});
 
-  const server = app.listen(PORT, () => {
-    console.log(`🚀 RED-ZONE X Backend & Database Engine running at http://localhost:${PORT}`);
-  });
+// Connect to MongoDB Atlas asynchronously
+(async () => {
+  try {
+    await connectDB();
+    await autoSeedDatabase();
+  } catch (err) {
+    console.warn("Async DB Init Warning:", err.message);
+  }
+})();
 
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.warn(`⚠️ Port ${PORT} is already in use. Retrying on port ${PORT + 1}...`);
-      PORT += 1;
-      server.listen(PORT);
-    } else {
-      console.error('Server error:', err);
-    }
-  });
-}
-
-bootstrap();
+module.exports = app;

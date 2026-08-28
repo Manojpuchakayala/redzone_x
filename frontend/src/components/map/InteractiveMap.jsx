@@ -32,7 +32,9 @@ import {
   Car,
   Footprints,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 
@@ -175,6 +177,7 @@ export default function InteractiveMap() {
 
   const activeWaypoints = isRoadCutoffSimulated ? detourWaypoints : primaryWaypoints;
 
+  // Multi-Modal Transit Time Data Table (Single Source of Truth)
   const transitTimes = {
     BUS: {
       label: 'Bus',
@@ -183,8 +186,8 @@ export default function InteractiveMap() {
       detourTime: '22m',
       googleMode: 'driving',
       voiceText: isRoadCutoffSimulated
-        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Safe Sanctuary."
-        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary."
+        ? "Warning: Primary road blocked by debris! Rerouting via Elevated High-Ridge Bypass. 22 minutes to Safe Sanctuary."
+        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary. Green corridor is clear."
     },
     CYCLE: {
       label: 'Cycle',
@@ -193,7 +196,7 @@ export default function InteractiveMap() {
       detourTime: '28m',
       googleMode: 'two_wheeler',
       voiceText: isRoadCutoffSimulated
-        ? "Bicycle and two-wheeler route active on High-Ridge Trail. 28 minutes to Safe Sanctuary."
+        ? "Warning: Primary road blocked. Bicycle and two-wheeler route active on High-Ridge Trail. 28 minutes to Safe Sanctuary."
         : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary."
     },
     CAR: {
@@ -203,7 +206,7 @@ export default function InteractiveMap() {
       detourTime: '14m',
       googleMode: 'driving',
       voiceText: isRoadCutoffSimulated
-        ? "Emergency Vehicle route active via Elevated Bypass. 14 minutes to Meppadi Safe Sanctuary."
+        ? "Warning: Primary road blocked. Emergency Vehicle route active via Elevated Bypass. 14 minutes to Meppadi Safe Sanctuary."
         : "Car and Ambulance emergency route active. 11 minutes to Safe Sanctuary."
     },
     WALK: {
@@ -213,13 +216,12 @@ export default function InteractiveMap() {
       detourTime: '62m',
       googleMode: 'walking',
       voiceText: isRoadCutoffSimulated
-        ? "Pedestrian foot evacuation corridor active on high ridge. 62 minutes to Safe Sanctuary."
+        ? "Warning: Primary road blocked. Pedestrian foot evacuation corridor active on high ridge. 62 minutes to Safe Sanctuary."
         : "Pedestrian foot evacuation corridor active. 48 minutes to Meppadi Safe Sanctuary."
     }
   };
 
   const currentTransit = transitTimes[transitMode] || transitTimes.BUS;
-  const currentEta = isRoadCutoffSimulated ? currentTransit.detourTime : currentTransit.directTime;
   const currentDistance = isRoadCutoffSimulated ? '4.1 km' : '3.4 km';
 
   const handleVoiceGuidance = () => {
@@ -238,32 +240,41 @@ export default function InteractiveMap() {
     window.open(url, '_blank');
   };
 
+  const handleToggleBlockade = () => {
+    setIsRoadCutoffSimulated(!isRoadCutoffSimulated);
+    setShouldFitBounds(true);
+  };
+
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 font-sans select-none">
       
-      {/* 1. ULTRA-COMPACT SLIM TOP NAVIGATION HUD (MAXIMIZING MAP VIEWPORT) */}
+      {/* 1. ULTRA-COMPACT SLIM TOP NAVIGATION HUD */}
       <div className="absolute top-2.5 left-2.5 right-2.5 z-[1000] flex flex-col gap-1.5 pointer-events-none">
         
         {/* Streamlined Single-Row Navigation Bar */}
         <div className="bg-slate-950/95 backdrop-blur-xl text-white px-3 py-2 rounded-xl shadow-xl border border-slate-700/80 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-2">
           
-          {/* Active Navigation Step & Mode ETA */}
+          {/* Active Navigation Step (Distance Only - No Duplicate ETA Here) */}
           <div className="flex items-center gap-2 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0">
+            <div className={`h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isRoadCutoffSimulated ? 'bg-amber-600/30 text-amber-400 border border-amber-500/40' : 'bg-emerald-600/30 text-emerald-400 border border-emerald-500/40'
+            }`}>
               <CornerUpRight className="h-4 w-4 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-xs font-black text-white leading-none truncate">
-                <span className="text-emerald-400">{isRoadCutoffSimulated ? '⚠️ Detour:' : '🟢 Escape:'}</span>
+                <span className={isRoadCutoffSimulated ? 'text-amber-400' : 'text-emerald-400'}>
+                  {isRoadCutoffSimulated ? '⚠️ Detour:' : '🟢 Escape:'}
+                </span>
                 <span className="truncate">{originHab?.name || 'Red Zone'} ➔ {safeShelter?.name || 'Sanctuary'}</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-mono text-[10px] border border-emerald-800">
-                  {currentEta} • {currentDistance}
+                <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 font-mono text-[10px] border border-slate-700 font-bold">
+                  {currentDistance}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* COMPACT TRANSIT MODE SWITCHER (SINGLE INSTANCE) */}
+          {/* COMPACT TRANSIT MODE SWITCHER (SINGLE INSTANCE OF TIMES) */}
           <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5 rounded-lg gap-0.5 text-xs">
             
             {/* Bus Mode */}
@@ -482,12 +493,12 @@ export default function InteractiveMap() {
           />
         )}
 
-        {/* Small, Compact Hazard Risk Polygons (Clear Satellite View) */}
+        {/* Small, Compact Hazard Risk Polygons */}
         {hazardZones.map((zone) => {
           const lat = Number(zone.lat || 11.5325);
           const lon = Number(zone.lon || 76.1362);
           const isRed = zone.severity === 'CRITICAL' || zone.colorHex === '#ef4444' || zone.color === '#ef4444';
-          const radius = Math.min((zone.radiusMeters || 600) * 0.4, 220); // Small, compact radius
+          const radius = Math.min((zone.radiusMeters || 600) * 0.4, 220);
 
           return (
             <Circle
@@ -521,7 +532,6 @@ export default function InteractiveMap() {
         {/* Settlement Markers */}
         {relocationPriorities.map((hab) => {
           const coords = parseCoords(hab.coordinates);
-          const fp = hab.fingerprint || {};
           return (
             <CircleMarker
               key={hab.id}
@@ -543,16 +553,19 @@ export default function InteractiveMap() {
           );
         })}
 
-        {/* Multi-Layer High-Contrast GPS Navigation Route Line */}
+        {/* Multi-Layer High-Contrast GPS Navigation Route Line (Dynamic Key for Instant Re-rendering) */}
         <Polyline
+          key={`casing-${isRoadCutoffSimulated ? 'detour' : 'primary'}`}
           positions={activeWaypoints}
           pathOptions={{ color: '#022c22', weight: 10, opacity: 0.85 }}
         />
         <Polyline
+          key={`core-${isRoadCutoffSimulated ? 'detour' : 'primary'}`}
           positions={activeWaypoints}
           pathOptions={{ color: isRoadCutoffSimulated ? '#f59e0b' : '#10b981', weight: 6, opacity: 1.0 }}
         />
         <Polyline
+          key={`dash-${isRoadCutoffSimulated ? 'detour' : 'primary'}`}
           positions={activeWaypoints}
           pathOptions={{ color: '#ffffff', weight: 2, opacity: 0.95, dashArray: '6, 10' }}
         />
@@ -561,12 +574,18 @@ export default function InteractiveMap() {
         {isRoadCutoffSimulated && (
           <CircleMarker
             center={primaryWaypoints[2]}
-            radius={10}
-            pathOptions={{ color: '#ef4444', fillColor: '#7f1d1d', fillOpacity: 1, weight: 2 }}
+            radius={12}
+            pathOptions={{ color: '#ffffff', fillColor: '#ef4444', fillOpacity: 1, weight: 2.5 }}
           >
-            <Tooltip permanent direction="top" offset={[0, -8]}>
-              <span className="font-black text-red-600 text-[10px]">🛑 BLOCKED</span>
+            <Tooltip permanent direction="top" offset={[0, -10]}>
+              <span className="font-black text-red-600 text-[10px] bg-white/95 px-1.5 py-0.5 rounded shadow">🛑 ROAD BLOCKED</span>
             </Tooltip>
+            <Popup>
+              <div className="p-1 text-xs">
+                <strong className="text-red-600 block">🛑 Main Road Blocked by Debris Flow</strong>
+                <p className="text-slate-600 text-[10px]">Traffic diverted via High-Ridge Bypass Line (+0.7 km).</p>
+              </div>
+            </Popup>
           </CircleMarker>
         )}
 
@@ -597,33 +616,28 @@ export default function InteractiveMap() {
       {/* 3. MINIMAL CLEAN BOTTOM BAR (NO DUPLICATE TRAVEL TIMES) */}
       <div className="absolute bottom-2.5 left-2.5 right-2.5 z-[1000] flex items-center justify-between gap-2 pointer-events-none">
         
-        {/* Road Cutoff Detour Switcher */}
+        {/* Road Cutoff Detour Switcher Button */}
         <div className="bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700 text-white shadow-lg pointer-events-auto flex items-center gap-2.5">
           <ShieldAlert className={`h-3.5 w-3.5 ${isRoadCutoffSimulated ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
           <span className="text-[11px] font-bold text-slate-200">
-            {isRoadCutoffSimulated ? '⚠️ Detour Active (High-Ridge)' : 'Road: Clear'}
+            {isRoadCutoffSimulated ? '⚠️ Detour Active (High-Ridge)' : 'Road: Main Route Clear'}
           </span>
           <button
-            onClick={() => {
-              setIsRoadCutoffSimulated(!isRoadCutoffSimulated);
-              setShouldFitBounds(true);
-            }}
+            onClick={handleToggleBlockade}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-md active:scale-95 ${
               isRoadCutoffSimulated
                 ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                 : 'bg-amber-600 hover:bg-amber-500 text-white'
             }`}
           >
-            <span>{isRoadCutoffSimulated ? '✓ Clear Blockade' : '⚡ Simulate Blockade'}</span>
+            <span>{isRoadCutoffSimulated ? '✓ Clear Blockade (Direct)' : '⚡ Simulate Blockade'}</span>
           </button>
         </div>
 
-        {/* Minimal Route Distance Pill */}
+        {/* Route Status Strip (Corridor Name - No Duplicate Mode Times) */}
         <div className="bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-white text-[11px] font-mono flex items-center gap-2 pointer-events-auto shadow-md">
-          <span className="text-slate-400">Route:</span>
-          <span className="text-emerald-400 font-bold">{currentDistance}</span>
-          <span className="text-slate-600">•</span>
-          <span className="text-amber-400 font-bold">{currentEta} ({currentTransit.label})</span>
+          <span className="text-slate-400">Corridor:</span>
+          <span className="text-emerald-400 font-bold">{isRoadCutoffSimulated ? 'Elevated Ridge Pass (4.1 km)' : 'Green Valley Main Road (3.4 km)'}</span>
         </div>
 
       </div>

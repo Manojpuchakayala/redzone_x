@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GeoResilience AI - Interactive Disaster Simulator</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulse-red {
+      0%, 100% { fill-opacity: 0.75; stroke-width: 2.5; }
+      50% { fill-opacity: 0.35; stroke-width: 4; }
+    }
+    .red-zone-pulse { animation: pulse-red 2s infinite ease-in-out; }
+    
+    @keyframes flow-route {
+      from { stroke-dashoffset: 40; }
+      to { stroke-dashoffset: 0; }
+    }
+    .active-evac-path {
+      stroke-dasharray: 8 4;
+      animation: flow-route 1.2s linear infinite;
+    }
+    
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 font-sans antialiased">
+
+  <!-- Header & Control Topbar -->
+  <header class="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex h-3 w-3 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-xs font-semibold uppercase tracking-widest text-emerald-400">Live AI Geospatial Decision Support System</span>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight text-white sm:text-3xl">
+        GeoResilience AI <span class="text-xs font-normal px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800">Prototype v2.4</span>
+      </h1>
+      <p class="text-xs text-slate-400">Intelligent Hazard Red-Zoning • Carrying Capacity Engine • Hazard-Aware Relocation DSS</p>
+    </div>
+
+    <!-- Mode Toggles & Case Study Selector -->
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2 rounded-lg bg-slate-900 border border-slate-800 p-1 text-xs">
+        <span class="px-2 font-medium text-slate-400">Region:</span>
+        <button id="btn-wayanad" onclick="setRegion('wayanad')" class="rounded px-2.5 py-1 font-bold text-white bg-blue-600 shadow">Wayanad, Kerala</button>
+        <button id="btn-joshimath" onclick="setRegion('joshimath')" class="rounded px-2.5 py-1 font-medium text-slate-300 hover:bg-slate-800">Joshimath, UK</button>
+      </div>
+
+      <!-- Offline / LoRa Mesh Toggle -->
+      <div id="offline-pill" class="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-950/40 px-3 py-1.5 text-xs text-emerald-300">
+        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+        <span class="font-bold">LoRa Mesh + Local GPS (0 Internet Active)</span>
+      </div>
+
+      <!-- 1-Click Action Report -->
+      <button onclick="openActionReportModal()" class="rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:from-amber-400 hover:to-orange-500">
+        📄 Export NDMA Action Plan
+      </button>
+    </div>
+  </header>
+
+  <!-- Top Metric Summary Cards -->
+  <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    <div class="glass-panel rounded-xl p-3.5 border-l-4 border-l-red-500">
+      <div class="flex justify-between text-xs text-slate-400">
+        <span>Critical Red Zones</span>
+        <span class="text-red-400 font-bold">🔴 High Danger</span>
+      </div>
+      <div id="stat-red-zones" class="text-2xl font-black text-white mt-1">2 Zones</div>
+      <div class="text-[11px] text-slate-400 mt-0.5">Slope > 35° & Saturation > 75%</div>
+    </div>
+
+    <div class="glass-panel rounded-xl p-3.5 border-l-4 border-l-orange-500">
+      <div class="flex justify-between text-xs text-slate-400">
+        <span>Citizens at Risk (Displaced)</span>
+        <span class="text-orange-400 font-bold">⚠️ Urgent Evac</span>
+      </div>
+      <div id="stat-displaced-pop" class="text-2xl font-black text-white mt-1">2,570</div>
+      <div class="text-[11px] text-slate-400 mt-0.5">597 Vulnerable Households</div>
+    </div>
+
+    <div class="glass-panel rounded-xl p-3.5 border-l-4 border-l-emerald-500">
+      <div class="flex justify-between text-xs text-slate-400">
+        <span>Green Zone Safe Capacity</span>
+        <span class="text-emerald-400 font-bold">🟢 Safe Transit</span>
+      </div>
+      <div id="stat-shelter-cap" class="text-2xl font-black text-emerald-400 mt-1">7,000 Slots</div>
+      <div class="text-[11px] text-emerald-300/80 mt-0.5">Surplus buffer: +4,430 capacity</div>
+    </div>
+
+    <div class="glass-panel rounded-xl p-3.5 border-l-4 border-l-blue-500">
+      <div class="flex justify-between text-xs text-slate-400">
+        <span>Regional Carrying Capacity</span>
+        <span id="stat-cci-badge" class="text-xs px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold">Overburdened</span>
+      </div>
+      <div id="stat-cci-val" class="text-2xl font-black text-white mt-1">CCI: 0.62</div>
+      <div class="text-[11px] text-slate-400 mt-0.5">Slope load penalty: +48% strain</div>
+    </div>
+  </section>
+
+  <!-- Main Grid: Simulation & Map + Analytics -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Left Column: Map Visualizer (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-4">
+      
+      <!-- Interactive SVG GIS Map Viewport -->
+      <div class="glass-panel rounded-2xl p-4 relative overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm text-white">🗺️ Topographical Spatial Zoning & Evacuation Mesh</span>
+            <span class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300">Scale: 1:25,000</span>
+          </div>
+          
+          <!-- Map Legend -->
+          <div class="flex items-center gap-3 text-[11px]">
+            <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded bg-red-500"></span> Red Zone</span>
+            <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded bg-amber-500"></span> Orange</span>
+            <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 rounded bg-emerald-500"></span> Green Zone</span>
+            <span class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-blue-400 border border-white"></span> Habitation</span>
+            <span class="flex items-center gap-1"><span class="h-2.5 w-2.5 bg-purple-500 rotate-45"></span> Shelter</span>
+          </div>
+        </div>
+
+        <!-- SVG Map Container -->
+        <div class="relative w-full rounded-xl bg-slate-900/90 border border-slate-800 p-2 overflow-hidden aspect-[4/3]">
+          
+          <svg id="gis-map" viewBox="0 0 800 600" class="w-full h-full select-none cursor-crosshair">
+            <!-- Background Topo Contours -->
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+              </pattern>
+              
+              <!-- Gradients for Zones -->
+              <radialGradient id="grad-red" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ef4444" stop-opacity="0.8" />
+                <stop offset="100%" stop-color="#b91c1c" stop-opacity="0.5" />
+              </radialGradient>
+              <radialGradient id="grad-orange" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.7" />
+                <stop offset="100%" stop-color="#d97706" stop-opacity="0.4" />
+              </radialGradient>
+              <radialGradient id="grad-green" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#10b981" stop-opacity="0.6" />
+                <stop offset="100%" stop-color="#047857" stop-opacity="0.35" />
+              </radialGradient>
+            </defs>
+
+            <rect width="100%" height="100%" fill="#0a0f1d" />
+            <rect width="100%" height="100%" fill="url(#grid)" />
+
+            <!-- Mountain Elevation Contours (Stylized) -->
+            <path d="M 50 300 Q 200 150 450 220 T 750 180" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="4 2" />
+            <path d="M 30 380 Q 250 220 500 300 T 780 250" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="4 2" />
+            <path d="M 20 480 Q 300 320 550 420 T 790 380" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" stroke-dasharray="4 2" />
+
+            <!-- River Drainage Channel -->
+            <path d="M 750 120 Q 550 240 380 340 T 80 560" fill="none" stroke="#0284c7" stroke-width="6" stroke-linecap="round" opacity="0.6" />
+            <text x="420" y="320" fill="#38bdf8" font-size="10" font-weight="bold" opacity="0.8" transform="rotate(-28 420 320)">Chaliyar River Stream Basin</text>
+
+            <!-- Dynamic Zone Polygons (Rendered via JS) -->
+            <g id="zone-layer"></g>
+
+            <!-- Evacuation Road Network Base -->
+            <g id="road-layer">
+              <path d="M 620 180 L 490 260 L 360 380 L 220 450 L 150 500" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round" />
+              <path d="M 560 320 L 490 260" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M 400 480 L 360 380" fill="none" stroke="#475569" stroke-width="2.5" stroke-linecap="round" />
+              <path d="M 220 450 L 210 320 L 180 200" fill="none" stroke="#475569" stroke-width="3.5" />
+            </g>
+
+            <!-- Active Evacuation Corridor (Animated Green Glow when selected) -->
+            <path id="active-evac-route" d="" fill="none" stroke="#22c55e" stroke-width="5" stroke-linecap="round" class="active-evac-path" opacity="0" />
+
+            <!-- Habitations Layer -->
+            <g id="habitation-layer"></g>
+
+            <!-- Relief Shelters Layer -->
+            <g id="shelter-layer"></g>
+          </svg>
+
+          <!-- Floating Map Tooltip Box -->
+          <div id="map-tooltip" class="pointer-events-none absolute bottom-4 left-4 max-w-xs rounded-lg bg-slate-900/95 border border-slate-700 p-3 text-xs shadow-2xl transition-all opacity-0">
+            <div id="tooltip-title" class="font-bold text-white">Node Info</div>
+            <div id="tooltip-desc" class="text-slate-300 mt-1">Hover over habitations or zones to inspect live parameters.</div>
+          </div>
+        </div>
+
+        <!-- Evacuation Route Active Notice -->
+        <div id="route-banner" class="mt-2 hidden rounded-lg bg-emerald-950/70 border border-emerald-500/40 p-2.5 text-xs text-emerald-200 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Active Hazard-Bypassing Corridor: <strong id="route-name">Punchirimattam → Meppadi Higher Secondary</strong></span>
+          </div>
+          <span class="font-bold text-emerald-400">96% Hazard Free (4.8 km • ~18 min)</span>
+        </div>
+      </div>
+
+      <!-- Simulation Controller Panel -->
+      <div class="glass-panel rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>🎛️ "What-If" Extreme Disaster Scenario Simulator</span>
+          </h2>
+          <span class="text-xs text-amber-400 font-semibold">Live AI Re-Zoning Active</span>
+        </div>
+
+        <!-- Rainfall Slider -->
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300 font-medium">Simulate 24-hr Cumulative Precipitation:</span>
+              <span id="rainfall-val-display" class="font-black text-amber-400 text-sm">180 mm (Heavy Storm)</span>
+            </div>
+            <input id="rainfall-slider" type="range" min="30" max="350" value="180" step="10" oninput="updateSimulation()" class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500">
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>30mm (Dry)</span>
+              <span>120mm (Monsoon)</span>
+              <span>220mm (Severe Storm)</span>
+              <span>350mm (Cloudburst Catastrophe)</span>
+            </div>
+          </div>
+
+          <!-- Soil Saturation & Scenario Buttons -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+            <button onclick="setRainPreset(60)" class="rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 p-2 text-xs font-semibold text-slate-300">
+              🟢 Normal Rain (60mm)
+            </button>
+            <button onclick="setRainPreset(190)" class="rounded-lg bg-amber-950/60 hover:bg-amber-900/80 border border-amber-600/50 p-2 text-xs font-semibold text-amber-200">
+              🟡 Severe Monsoon (190mm)
+            </button>
+            <button onclick="setRainPreset(320)" class="rounded-lg bg-red-950/60 hover:bg-red-900/80 border border-red-600/50 p-2 text-xs font-semibold text-red-200">
+              🔴 2024 Cloudburst (320mm)
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Carrying Capacity & Priority Relocation List (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+
+      <!-- Carrying Capacity Breakdown Panel -->
+      <div class="glass-panel rounded-2xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
+            <span>⚖️ Carrying Capacity Index (CCI) by Zone</span>
+          </h2>
+          <span class="text-[11px] text-slate-400">Formula: Safe Space / (Pop × Slope Strain)</span>
+        </div>
+
+        <div id="capacity-bars" class="space-y-3">
+          <!-- Dynamic Capacity Meters inserted via JS -->
+        </div>
+      </div>
+
+      <!-- Immediate Relocation Priority Dispatcher -->
+      <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-bold text-white flex items-center gap-1.5">
+              <span>🚨 Vulnerability Priority Relocation List</span>
+            </h2>
+            <p class="text-[11px] text-slate-400">Ranked by Vulnerability Priority Score (VPS)</p>
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-red-950 text-red-300 border border-red-800 font-bold" id="evac-count-badge">3 Habitations Require Evacuation</span>
+        </div>
+
+        <!-- Habitation Priority Cards List -->
+        <div id="habitation-list" class="space-y-2.5 overflow-y-auto max-h-[380px] pr-1">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- NDMA Action Plan Modal -->
+  <div id="report-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 hidden">
+    <div class="glass-panel rounded-2xl max-w-2xl w-full p-6 border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between border-b border-slate-700 pb-3 mb-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Government of India • Disaster Management Authority</span>
+          <h3 class="text-lg font-black text-white mt-0.5">Tactical Habitation Relocation & Evacuation Order</h3>
+          <p class="text-xs text-slate-400">Generated: <span id="report-timestamp"></span></p>
+        </div>
+        <button onclick="closeActionReportModal()" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs text-slate-300">
+        <div class="grid grid-cols-3 gap-2 bg-slate-900/90 rounded-lg p-3 border border-slate-800 text-center">
+          <div><span class="block text-slate-400">Target Region</span><strong id="rep-region" class="text-white">Wayanad</strong></div>
+          <div><span class="block text-slate-400">Mandatory Evacuees</span><strong id="rep-evacuees" class="text-amber-400">2,570 Citizens</strong></div>
+          <div><span class="block text-slate-400">Buses / Ambulances Required</span><strong id="rep-logistics" class="text-emerald-400">65 Buses / 28 Amb</strong></div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-white mb-2">Priority 1 Evacuation Dispatch Roster:</h4>
+          <table class="w-full border-collapse border border-slate-800 text-left text-[11px]">
+            <thead>
+              <tr class="bg-slate-900 text-slate-400">
+                <th class="p-2 border border-slate-800">Priority</th>
+                <th class="p-2 border border-slate-800">Habitation</th>
+                <th class="p-2 border border-slate-800">Citizens</th>
+                <th class="p-2 border border-slate-800">Assigned Safe Green Shelter</th>
+                <th class="p-2 border border-slate-800">Transit Time</th>
+              </tr>
+            </thead>
+            <tbody id="report-table-body">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="p-3 rounded-lg bg-amber-950/40 border border-amber-700/40 text-amber-200">
+          <strong>⚠️ Tactical Execution Note:</strong> Evacuation paths are computed using Hazard-Penalized routing avoiding riverbed flood lines and saturated slope escarpments. Dispatched teams must utilize LoRa Mesh channel CH-04 if cellular signal drops.
+        </div>
+      </div>
+
+      <div class="mt-5 flex justify-end gap-3 border-t border-slate-800 pt-3">
+        <button onclick="window.print()" class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500">🖨️ Print Official PDF Order</button>
+        <button onclick="closeActionReportModal()" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Prototype Engine -->
+  <script>
+    // Geospatial Data Store
+    const datasets = {
+      wayanad: {
+        name: "Wayanad (Meppadi - Chooralmala Basin), Kerala",
+        zones: [
+          { id: "WZ-01", name: "Chooralmala Upper Escarpment", slope: 42, soil: "Laterite Clayey (2.8m)", baseCCI: 0.42, polygon: "500,100 680,120 620,240 450,220" },
+          { id: "WZ-02", name: "Mundakkai Valley Basin", slope: 36, soil: "Gravelly Loam (3.2m)", baseCCI: 0.58, polygon: "450,220 620,240 550,380 380,340" },
+          { id: "WZ-03", name: "Attamala Hill Settlement", slope: 28, soil: "Sandy Clay (2.1m)", baseCCI: 0.82, polygon: "380,340 550,380 480,500 320,460" },
+          { id: "WZ-04", name: "Meppadi Safe Plateau (Green Hub)", slope: 9, soil: "Compacted Bedrock", baseCCI: 1.65, polygon: "180,380 340,360 300,520 120,540" },
+          { id: "WZ-05", name: "Kalpetta Ridge Green Zone", slope: 6, soil: "Charnockite Bedrock", baseCCI: 1.95, polygon: "80,140 250,160 210,340 50,300" }
+        ],
+        habitations: [
+          { id: "HAB-104", name: "Punchirimattam Ridge", zoneId: "WZ-01", pop: 310, cx: 560, cy: 160, fragility: 0.92, elderlyRatio: 0.42, shelter: "Meppadi Higher Secondary Relief Complex", route: "M 560 160 L 490 260 L 360 380 L 220 450" },
+          { id: "HAB-101", name: "Mundakkai Tea Colony", zoneId: "WZ-02", pop: 840, cx: 500, cy: 280, fragility: 0.85, elderlyRatio: 0.38, shelter: "St. Joseph Transit Hub", route: "M 500 280 L 360 380 L 220 450" },
+          { id: "HAB-102", name: "Chooralmala Bazaar", zoneId: "WZ-01", pop: 1420, cx: 590, cy: 210, fragility: 0.78, elderlyRatio: 0.32, shelter: "Meppadi Higher Secondary Relief Complex", route: "M 590 210 L 490 260 L 360 380 L 220 450" },
+          { id: "HAB-103", name: "Attamala Enclave", zoneId: "WZ-03", pop: 460, cx: 430, cy: 410, fragility: 0.65, elderlyRatio: 0.28, shelter: "St. Joseph Transit Hub", route: "M 430 410 L 360 380 L 220 450" },
+          { id: "HAB-105", name: "Meppadi Safe Sector", zoneId: "WZ-04", pop: 2650, cx: 220, cy: 450, fragility: 0.22, elderlyRatio: 0.18, shelter: "Local Safe Base", route: "" }
+        ],
+        shelters: [
+          { id: "SH-01", name: "Meppadi Relief Complex", cx: 220, cy: 450, capacity: 2500, current: 400 },
+          { id: "SH-02", name: "St. Joseph Transit Hub", cx: 160, cy: 480, capacity: 1500, current: 150 },
+          { id: "SH-03", name: "Kalpetta Multi-Camp", cx: 140, cy: 220, capacity: 4000, current: 350 }
+        ]
+      },
+      joshimath: {
+        name: "Joshimath Catchment, Chamoli, Uttarakhand",
+        zones: [
+          { id: "JZ-01", name: "Sunil / Manohar Bagh Subsidence Core", slope: 34, soil: "Glacial Moraine (4.5m)", baseCCI: 0.35, polygon: "480,120 660,150 580,320 400,280" },
+          { id: "JZ-02", name: "Marwari River Toe Slopes", slope: 40, soil: "Fractured Colluvium", baseCCI: 0.48, polygon: "400,280 580,320 500,480 320,440" },
+          { id: "JZ-03", name: "Auli Bedrock Ridge (Green Zone)", slope: 11, soil: "Hard Granite Bedrock", baseCCI: 1.75, polygon: "140,180 300,200 240,480 80,440" }
+        ],
+        habitations: [
+          { id: "JH-201", name: "Manohar Bagh Settlement", zoneId: "JZ-01", pop: 920, cx: 540, cy: 190, fragility: 0.94, elderlyRatio: 0.35, shelter: "Pipalkoti Central Relief Town", route: "M 540 190 L 420 280 L 220 340 L 160 380" },
+          { id: "JH-202", name: "Sunil Village Ward 7", zoneId: "JZ-01", pop: 680, cx: 580, cy: 150, fragility: 0.88, elderlyRatio: 0.30, shelter: "Pipalkoti Central Relief Town", route: "M 580 150 L 420 280 L 220 340 L 160 380" },
+          { id: "JH-203", name: "Marwari Municipal Colony", zoneId: "JZ-02", pop: 1150, cx: 440, cy: 360, fragility: 0.82, elderlyRatio: 0.27, shelter: "Auli Alpine Transit Camp", route: "M 440 360 L 320 440 L 220 340" }
+        ],
+        shelters: [
+          { id: "JSH-01", name: "Pipalkoti Central Relief Town", cx: 160, cy: 380, capacity: 4000, current: 400 },
+          { id: "JSH-02", name: "Auli Alpine Transit Camp", cx: 220, cy: 340, capacity: 2000, current: 200 }
+        ]
+      }
+    };
+
+    let currentRegion = 'wayanad';
+    let currentRainfall = 180;
+    let activeSelectedHabId = null;
+
+    function setRegion(reg) {
+      currentRegion = reg;
+      document.getElementById('btn-wayanad').className = reg === 'wayanad' ? "rounded px-2.5 py-1 font-bold text-white bg-blue-600 shadow" : "rounded px-2.5 py-1 font-medium text-slate-300 hover:bg-slate-800";
+      document.getElementById('btn-joshimath').className = reg === 'joshimath' ? "rounded px-2.5 py-1 font-bold text-white bg-blue-600 shadow" : "rounded px-2.5 py-1 font-medium text-slate-300 hover:bg-slate-800";
+      activeSelectedHabId = null;
+      document.getElementById('active-evac-route').setAttribute('opacity', '0');
+      document.getElementById('route-banner').classList.add('hidden');
+      updateSimulation();
+    }
+
+    function setRainPreset(mm) {
+      document.getElementById('rainfall-slider').value = mm;
+      updateSimulation();
+    }
+
+    function updateSimulation() {
+      currentRainfall = parseInt(document.getElementById('rainfall-slider').value);
+      
+      // Update label display
+      let stormLevel = "Normal Weather";
+      if (currentRainfall >= 250) stormLevel = "Extreme Cloudburst Catastrophe ⛈️";
+      else if (currentRainfall >= 160) stormLevel = "Severe Monsoon Downpour 🌧️";
+      else if (currentRainfall >= 100) stormLevel = "Moderate Monsoon Rain 🌦️";
+      
+      document.getElementById('rainfall-val-display').innerText = `${currentRainfall} mm (${stormLevel})`;
+
+      renderMapAndAnalytics();
+    }
+
+    function renderMapAndAnalytics() {
+      const data = datasets[currentRegion];
+      const zoneLayer = document.getElementById('zone-layer');
+      const habLayer = document.getElementById('habitation-layer');
+      const shelterLayer = document.getElementById('shelter-layer');
+      const capacityBars = document.getElementById('capacity-bars');
+      const habList = document.getElementById('habitation-list');
+
+      zoneLayer.innerHTML = '';
+      habLayer.innerHTML = '';
+      shelterLayer.innerHTML = '';
+      capacityBars.innerHTML = '';
+      habList.innerHTML = '';
+
+      let redCount = 0;
+      let totalDisplaced = 0;
+      let totalShelterAvailable = 0;
+
+      // 1. Calculate and Render Zones
+      const computedZones = data.zones.map(z => {
+        // Multi-hazard Susceptibility Formula: Slope(40%) + Rain(40%) + Soil(20%)
+        const slopeFactor = z.slope / 45;
+        const rainFactor = currentRainfall / 280;
+        let riskScore = (slopeFactor * 0.45) + (rainFactor * 0.45) + (z.slope > 25 ? 0.10 : 0);
+        riskScore = Math.min(1.0, riskScore);
+
+        let category = "GREEN";
+        let fill = "url(#grad-green)";
+        let stroke = "#10b981";
+        let statusText = "Safe / Buffer Zone";
+
+        if (riskScore >= 0.65) {
+          category = "RED";
+          fill = "url(#grad-red)";
+          stroke = "#ef4444";
+          statusText = "Critical Hazard (Red Zone)";
+          redCount++;
+        } else if (riskScore >= 0.38) {
+          category = "ORANGE";
+          fill = "url(#grad-orange)";
+          stroke = "#f59e0b";
+          statusText = "Moderate Risk (Orange Zone)";
+        }
+
+        // Render Polygon on SVG Map
+        const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        poly.setAttribute("points", z.polygon);
+        poly.setAttribute("fill", fill);
+        poly.setAttribute("stroke", stroke);
+        poly.setAttribute("stroke-width", "2");
+        if (category === "RED") poly.setAttribute("class", "red-zone-pulse cursor-pointer");
+        else poly.setAttribute("class", "cursor-pointer transition-all hover:opacity-80");
+
+        poly.onmouseenter = (e) => showTooltip(z.name, `Category: ${statusText} | Slope: ${z.slope}° | Susceptibility: ${(riskScore * 100).toFixed(0)}%`);
+        poly.onmouseleave = hideTooltip;
+
+        zoneLayer.appendChild(poly);
+
+        // Zone Name Label
+        const centerCoords = z.polygon.split(" ")[0].split(",");
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", parseInt(centerCoords[0]) + 15);
+        label.setAttribute("y", parseInt(centerCoords[1]) + 25);
+        label.setAttribute("fill", category === "RED" ? "#fca5a5" : category === "ORANGE" ? "#fde68a" : "#a7f3d0");
+        label.setAttribute("font-size", "10");
+        label.setAttribute("font-weight", "bold");
+        label.textContent = z.name.split(" ")[0];
+        zoneLayer.appendChild(label);
+
+        // Compute CCI
+        const cci = Math.max(0.2, (z.baseCCI * (1.2 - (currentRainfall / 400)))).toFixed(2);
+        const cciPercent = Math.min(100, Math.round(cci * 50));
+        const isOverburdened = cci < 0.8 || category === "RED";
+
+        // Render Capacity Meter
+        capacityBars.innerHTML += `
+          <div class="rounded-lg bg-slate-900/80 p-2.5 border border-slate-800 text-xs">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-semibold text-slate-200">${z.name}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isOverburdened ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-emerald-950 text-emerald-400 border border-emerald-800'}">
+                CCI: ${cci} (${isOverburdened ? 'Overburdened' : 'Sustainable'})
+              </span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div class="h-full rounded-full ${isOverburdened ? 'bg-red-500' : cci < 1.1 ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${cciPercent}%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-500 mt-1">
+              <span>Slope: ${z.slope}°</span>
+              <span>${isOverburdened ? '⚠️ Relocation Action Triggered' : 'Capacity Available'}</span>
+            </div>
+          </div>
+        `;
+
+        return { ...z, riskScore, category, cci };
+      });
+
+      // 2. Render Shelters on Map
+      data.shelters.forEach(s => {
+        totalShelterAvailable += (s.capacity - s.current);
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "cursor-pointer");
+        g.innerHTML = `
+          <rect x="${s.cx - 8}" y="${s.cy - 8}" width="16" height="16" fill="#a855f7" stroke="#ffffff" stroke-width="2" transform="rotate(45 ${s.cx} ${s.cy})" />
+          <text x="${s.cx + 12}" y="${s.cy + 4}" fill="#e9d5ff" font-size="10" font-weight="bold">${s.name.split(" ")[0]} Shelter</text>
+        `;
+        g.onmouseenter = () => showTooltip(`Safe Green Shelter: ${s.name}`, `Capacity: ${s.capacity} | Available Slots: ${s.capacity - s.current}`);
+        g.onmouseleave = hideTooltip;
+        shelterLayer.appendChild(g);
+      });
+
+      // 3. Compute and Rank Habitations (VPS Algorithm)
+      const scoredHabitations = data.habitations.map(h => {
+        const parentZone = computedZones.find(z => z.id === h.zoneId);
+        const isRed = parentZone && parentZone.category === "RED";
+        const isOrange = parentZone && parentZone.category === "ORANGE";
+        
+        // VPS = Hazard(40%) + Fragility(30%) + Demographics(20%) + Rain(10%)
+        let vps = (parentZone.riskScore * 0.40) + (h.fragility * 0.30) + (h.elderlyRatio * 0.20) + ((currentRainfall / 350) * 0.10);
+        vps = Number(vps.toFixed(2));
+
+        const needsEvac = isRed || vps >= 0.65;
+        if (needsEvac) totalDisplaced += h.pop;
+
+        return { ...h, parentZone, vps, needsEvac, isRed };
+      });
+
+      scoredHabitations.sort((a, b) => b.vps - a.vps);
+
+      let evacCount = 0;
+
+      // Render Habitation Nodes on Map and List
+      scoredHabitations.forEach((h, idx) => {
+        if (h.needsEvac) evacCount++;
+
+        // Map Node
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", h.cx);
+        circle.setAttribute("cy", h.cy);
+        circle.setAttribute("r", h.needsEvac ? "8" : "6");
+        circle.setAttribute("fill", h.needsEvac ? "#ef4444" : "#38bdf8");
+        circle.setAttribute("stroke", "#ffffff");
+        circle.setAttribute("stroke-width", "2");
+        circle.setAttribute("class", "cursor-pointer hover:scale-125 transition-transform");
+        circle.onclick = () => selectHabitationRoute(h);
+        circle.onmouseenter = () => showTooltip(`${h.name} (Rank #${idx + 1})`, `Citizens: ${h.pop} | VPS Risk: ${(h.vps * 100).toFixed(0)}% | Urgency: ${h.needsEvac ? 'CRITICAL EVACUATION' : 'MONITOR'}`);
+        circle.onmouseleave = hideTooltip;
+        habLayer.appendChild(circle);
+
+        // Sidebar Card
+        const isSelected = activeSelectedHabId === h.id;
+        habList.innerHTML += `
+          <div class="rounded-xl p-3 border transition-all ${isSelected ? 'bg-blue-950/80 border-blue-500 shadow-lg' : 'bg-slate-900/90 border-slate-800 hover:border-slate-700'}">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold ${idx === 0 ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-200'}">#${idx + 1}</span>
+                  <strong class="text-xs text-white">${h.name}</strong>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5">Citizens: <span class="text-slate-200 font-semibold">${h.pop}</span> • Fragility: ${(h.fragility * 100).toFixed(0)}%</div>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-black ${h.needsEvac ? 'bg-red-950 text-red-400 border border-red-700' : 'bg-slate-800 text-slate-300'}">
+                VPS: ${(h.vps * 100).toFixed(0)}%
+              </span>
+            </div>
+
+            <div class="mt-2 text-[10px] text-slate-300 bg-slate-950/60 p-2 rounded border border-slate-800/80">
+              <strong>Why Priority #${idx + 1}:</strong> ${h.parentZone.name} is on a steep ${h.parentZone.slope}° slope with ${(h.elderlyRatio * 100).toFixed(0)}% elderly/infants.
+            </div>
+
+            ${h.route ? `
+              <button onclick="selectHabitationRouteById('${h.id}')" class="mt-2 w-full rounded-lg ${isSelected ? 'bg-emerald-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-emerald-300'} py-1.5 text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                <span>${isSelected ? '✓ Showing Safe Evacuation Route' : '🛣️ Draw Safe Route Avoiding Red Zones'}</span>
+              </button>
+            ` : ''}
+          </div>
+        `;
+      });
+
+      // Update Summary Cards
+      document.getElementById('stat-red-zones').innerText = `${redCount} Red Zones`;
+      document.getElementById('stat-displaced-pop').innerText = `${totalDisplaced.toLocaleString()}`;
+      document.getElementById('stat-shelter-cap').innerText = `${totalShelterAvailable.toLocaleString()} Slots`;
+      document.getElementById('evac-count-badge').innerText = `${evacCount} Habitations Require Evacuation`;
+
+      // Update Overall CCI
+      const avgCCI = (computedZones.reduce((s, z) => s + parseFloat(z.cci), 0) / computedZones.length).toFixed(2);
+      document.getElementById('stat-cci-val').innerText = `CCI: ${avgCCI}`;
+      const badge = document.getElementById('stat-cci-badge');
+      if (avgCCI < 0.8) {
+        badge.innerText = "Overburdened";
+        badge.className = "text-xs px-1.5 py-0.5 rounded bg-red-950 text-red-300 font-bold border border-red-800";
+      } else if (avgCCI < 1.2) {
+        badge.innerText = "Threshold Approaching";
+        badge.className = "text-xs px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 font-bold border border-amber-800";
+      } else {
+        badge.innerText = "Sustainable";
+        badge.className = "text-xs px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 font-bold border border-emerald-800";
+      }
+    }
+
+    function selectHabitationRouteById(id) {
+      const data = datasets[currentRegion];
+      const hab = data.habitations.find(h => h.id === id);
+      if (hab) selectHabitationRoute(hab);
+    }
+
+    function selectHabitationRoute(hab) {
+      activeSelectedHabId = hab.id;
+      const pathEl = document.getElementById('active-evac-route');
+      const banner = document.getElementById('route-banner');
+      
+      if (hab.route) {
+        pathEl.setAttribute('d', hab.route);
+        pathEl.setAttribute('opacity', '1');
+        banner.classList.remove('hidden');
+        document.getElementById('route-name').innerText = `${hab.name} → ${hab.shelter}`;
+      } else {
+        pathEl.setAttribute('opacity', '0');
+        banner.classList.add('hidden');
+      }
+      renderMapAndAnalytics();
+    }
+
+    function showTooltip(title, desc) {
+      const tt = document.getElementById('map-tooltip');
+      document.getElementById('tooltip-title').innerText = title;
+      document.getElementById('tooltip-desc').innerText = desc;
+      tt.classList.remove('opacity-0');
+    }
+
+    function hideTooltip() {
+      document.getElementById('map-tooltip').classList.add('opacity-0');
+    }
+
+    function openActionReportModal() {
+      const data = datasets[currentRegion];
+      document.getElementById('report-timestamp').innerText = new Date().toLocaleString();
+      document.getElementById('rep-region').innerText = data.name;
+      
+      let totalEvac = 0;
+      const tbody = document.getElementById('report-table-body');
+      tbody.innerHTML = '';
+
+      data.habitations.slice(0, 4).forEach((h, i) => {
+        totalEvac += h.pop;
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-800">
+            <td class="p-2 font-bold text-red-400">Rank #${i + 1}</td>
+            <td class="p-2 text-white font-semibold">${h.name}</td>
+            <td class="p-2 text-slate-300">${h.pop} Citizens</td>
+            <td class="p-2 text-emerald-300">${h.shelter}</td>
+            <td class="p-2 text-slate-300 font-mono">15 - 22 mins</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('rep-evacuees').innerText = `${totalEvac.toLocaleString()} Citizens`;
+      document.getElementById('rep-logistics').innerText = `${Math.ceil(totalEvac / 40)} Buses / ${Math.ceil(totalEvac / 90)} Ambulances`;
+      document.getElementById('report-modal').classList.remove('hidden');
+    }
+
+    function closeActionReportModal() {
+      document.getElementById('report-modal').classList.add('hidden');
+    }
+
+    // Initialize on Load
+    updateSimulation();
+  </script>
+</body>
+</html>

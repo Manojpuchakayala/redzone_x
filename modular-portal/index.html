@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoResilience AI - Simple Disaster Decision Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/map.css">
+  <link rel="stylesheet" href="css/modal.css">
+</head>
+<body>
+
+  <!-- Clean Top Navigation -->
+  <header class="simple-header">
+    <div class="header-inner">
+      
+      <div class="brand-group">
+        <div class="brand-icon">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">GeoResilience AI</h1>
+          <div class="brand-sub">Hazard Red-Zoning &amp; Relocation Dashboard</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Simple Jurisdiction Switcher -->
+        <div class="region-btn-group">
+          <button id="btn-wayanad" class="btn-region active">Wayanad, Kerala</button>
+          <button id="btn-joshimath" class="btn-region">Joshimath, UK</button>
+        </div>
+
+        <button class="btn-pdf" onclick="openReportModal()">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span>Export Plan (PDF)</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Simple Page Content Container -->
+  <div class="app-container">
+    
+    <!-- 4 Clean Metric Cards -->
+    <div class="kpi-row">
+      <div class="simple-card">
+        <div class="kpi-top"><span>Critical Red Zones</span> <i class="fa-solid fa-triangle-exclamation text-red"></i></div>
+        <div class="kpi-num text-red" id="kpi-red-zones">2 Zones</div>
+        <div class="kpi-subtext">Immediate Hazard Risk</div>
+      </div>
+
+      <div class="simple-card">
+        <div class="kpi-top"><span>People to Evacuate</span> <i class="fa-solid fa-users text-amber-500"></i></div>
+        <div class="kpi-num" id="kpi-evacuees">2,260</div>
+        <div class="kpi-subtext">Immediate Relocation</div>
+      </div>
+
+      <div class="simple-card">
+        <div class="kpi-top"><span>Safe Shelter Slots</span> <i class="fa-solid fa-circle-check text-green"></i></div>
+        <div class="kpi-num text-green" id="kpi-safe-slots">8,800</div>
+        <div class="kpi-subtext">Available Green Sanctuaries</div>
+      </div>
+
+      <div class="simple-card">
+        <div class="kpi-top"><span>Carrying Capacity</span> <i class="fa-solid fa-scale-balanced text-blue"></i></div>
+        <div class="kpi-num font-mono" id="kpi-cci">CCI: 0.58</div>
+        <div class="kpi-subtext">Slope Strain Threshold</div>
+      </div>
+    </div>
+
+    <!-- Main Workspace (Map on Left + Village List on Right) -->
+    <div class="main-dashboard-grid">
+      
+      <!-- Left: Interactive Map + Rainfall Slider -->
+      <div class="map-section">
+        
+        <div class="map-card">
+          <div class="map-card-header">
+            <span class="map-title"><i class="fa-solid fa-map"></i> Topographical Hazard Map</span>
+            <div class="map-legend-simple">
+              <span><span class="dot dot-red"></span> Red Zone</span>
+              <span><span class="dot dot-amber"></span> Orange</span>
+              <span><span class="dot dot-green"></span> Safe Zone</span>
+            </div>
+          </div>
+          <div id="map"></div>
+        </div>
+
+        <!-- Clean Rainfall Slider -->
+        <div class="sim-box">
+          <div class="sim-top">
+            <span class="sim-label"><i class="fa-solid fa-cloud-rain text-blue"></i> 24-Hour Rainfall Simulator:</span>
+            <span class="sim-val" id="rain-display">180 mm / 24h</span>
+          </div>
+
+          <input type="range" id="rain-slider" min="30" max="350" step="10" value="180">
+
+          <div class="preset-row">
+            <button class="btn-preset" onclick="setPreset(60)">🟢 Normal (60mm)</button>
+            <button class="btn-preset" onclick="setPreset(180)">🟡 Monsoon (180mm)</button>
+            <button class="btn-preset" onclick="setPreset(320)">🔴 Cloudburst (320mm)</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Ranked Village Evacuation Priority List -->
+      <div class="roster-section">
+        <div class="roster-header">
+          <span class="roster-title"><i class="fa-solid fa-list-ol text-blue"></i> Village Relocation Priority</span>
+          <span style="font-size: 11px; color: #64748b; font-weight: 600;">Ranked by Vulnerability</span>
+        </div>
+
+        <div class="roster-list" id="tab-content-area">
+          <!-- Rendered Dynamically via uiController.js -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Modal Action Order -->
+  <div class="modal-overlay" id="report-modal" style="display: none;">
+    <div class="modal-card">
+      <div class="gov-tricolor-bar"></div>
+      
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-seal"><i class="fa-solid fa-shield"></i></div>
+          <div>
+            <div class="modal-sub">NATIONAL DISASTER MANAGEMENT AUTHORITY</div>
+            <h3 class="modal-heading">Tactical Relocation Directive</h3>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeReportModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-stats-grid">
+          <div class="modal-stat-box">
+            <span class="modal-stat-label">Jurisdiction</span>
+            <strong class="modal-stat-val" id="modal-region-name">Wayanad, Kerala</strong>
+          </div>
+          <div class="modal-stat-box">
+            <span class="modal-stat-label">Immediate Relocations</span>
+            <strong class="modal-stat-val text-red" id="modal-evacuees-count">2,260 Citizens</strong>
+          </div>
+          <div class="modal-stat-box">
+            <span class="modal-stat-label">Required Transport</span>
+            <strong class="modal-stat-val text-blue" id="modal-fleet-count">57 Buses / 26 Amb</strong>
+          </div>
+        </div>
+
+        <div class="modal-table-container">
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Habitation</th>
+                <th>Headcount</th>
+                <th>Destination Site</th>
+                <th>Transit</th>
+              </tr>
+            </thead>
+            <tbody id="modal-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-download-pdf" onclick="downloadDirectivePdf()">
+          <i class="fa-solid fa-download"></i> Download PDF Order
+        </button>
+        <button class="btn-modal-close" onclick="closeReportModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Application Logic -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

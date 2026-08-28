@@ -1,0 +1,18 @@
+module.exports = {
+  HAZARD_THRESHOLDS: {
+    RED_ZONE: 0.65,
+    ORANGE_ZONE: 0.38,
+    GREEN_ZONE: 0.00,
+  },
+  WEIGHTS: {
+    SLOPE: 0.35,
+    RAINFALL: 0.30,
+    SOIL_MOISTURE: 0.20,
+    DRAINAGE_PROXIMITY: 0.15,
+  },
+  CAPACITY_LIMITS: {
+    CRITICAL_CCI: 0.80,
+    WARNING_CCI: 1.10,
+    SAFE_CCI: 1.20,
+  },
+};

@@ -7,8 +7,7 @@ import {
   CircleMarker,
   Popup,
   Tooltip,
-  useMap,
-  useMapEvents
+  useMap
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -28,11 +27,15 @@ import {
   Minus,
   LocateFixed,
   Compass,
-  Maximize2
+  Bus,
+  Bike,
+  Car,
+  Footprints,
+  Clock
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 
-// Dynamic Map Controller: Pans, zooms, and fits bounds seamlessly
+// Dynamic Map Camera Controller
 function MapCameraController({ center, waypoints, shouldFitBounds, onBoundsFitted }) {
   const map = useMap();
 
@@ -61,11 +64,11 @@ function MapCameraController({ center, waypoints, shouldFitBounds, onBoundsFitte
 }
 
 // Floating Pan & Zoom Controls Component
-function CustomMapControls({ onRecenterRoute, onLocateGPS, onResetNorth, userLocation }) {
+function CustomMapControls({ onRecenterRoute, onLocateGPS, userLocation }) {
   const map = useMap();
 
   return (
-    <div className="absolute right-4 top-24 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
+    <div className="absolute right-4 top-28 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
       {/* Zoom In */}
       <button
         onClick={() => map.zoomIn()}
@@ -115,6 +118,7 @@ export default function InteractiveMap() {
   } = useDisaster();
 
   const [mapLayer, setMapLayer] = useState('SATELLITE'); // 'SATELLITE' | 'GOOGLE' | 'TOPO' | 'STREET'
+  const [transitMode, setTransitMode] = useState('BUS'); // 'CAR' | 'BUS' | 'CYCLE' | 'WALK'
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [shouldFitBounds, setShouldFitBounds] = useState(true);
 
@@ -182,6 +186,58 @@ export default function InteractiveMap() {
 
   const activeWaypoints = isRoadCutoffSimulated ? detourWaypoints : primaryWaypoints;
 
+  // Multi-Modal Transit Time Data Table
+  const transitTimes = {
+    CAR: {
+      label: 'Ambulance / Car',
+      icon: Car,
+      directTime: '11 mins',
+      detourTime: '14 mins',
+      speed: '35 km/h',
+      googleMode: 'driving',
+      voiceText: isRoadCutoffSimulated
+        ? "Emergency Vehicle route active via Elevated High-Ridge Bypass. 14 minutes to Meppadi Safe Sanctuary."
+        : "Car and Ambulance emergency route active. Proceed 350 meters on Green Valley Corridor. 11 minutes to destination."
+    },
+    BUS: {
+      label: 'Evacuation Bus',
+      icon: Bus,
+      directTime: '16 mins',
+      detourTime: '22 mins',
+      speed: '18 km/h',
+      googleMode: 'transit',
+      voiceText: isRoadCutoffSimulated
+        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Meppadi Safe Sanctuary."
+        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary. Green corridor is clear."
+    },
+    CYCLE: {
+      label: 'Bicycle / 2-Wheeler',
+      icon: Bike,
+      directTime: '21 mins',
+      detourTime: '28 mins',
+      speed: '12 km/h',
+      googleMode: 'bicycling',
+      voiceText: isRoadCutoffSimulated
+        ? "Two-wheeler and bicycle route active on Ridge Trail. 28 minutes to Safe Sanctuary. Watch for gravel."
+        : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary via safe valley road."
+    },
+    WALK: {
+      label: 'Foot Evacuation',
+      icon: Footprints,
+      directTime: '48 mins',
+      detourTime: '62 mins',
+      speed: '4.2 km/h',
+      googleMode: 'walking',
+      voiceText: isRoadCutoffSimulated
+        ? "Pedestrian foot evacuation corridor active on high ridge footpath. 62 minutes to Safe Sanctuary."
+        : "Pedestrian foot evacuation corridor active. 48 minutes to Meppadi Safe Sanctuary. Stay in grouped formation."
+    }
+  };
+
+  const currentTransit = transitTimes[transitMode] || transitTimes.BUS;
+  const currentEta = isRoadCutoffSimulated ? currentTransit.detourTime : currentTransit.directTime;
+  const currentDistance = isRoadCutoffSimulated ? '4.1 km' : '3.4 km';
+
   const primarySteps = [
     { distance: '350 m', icon: CornerUpRight, text: 'Head Northwest on Chooralmala Main Line toward Bridge #2', road: 'Chooralmala Sector Bypass' },
     { distance: '1.2 km', icon: ArrowUp, text: 'Continue straight along Green Valley Safe Corridor (Away from Red Ridge)', road: 'State Highway 59' },
@@ -201,10 +257,7 @@ export default function InteractiveMap() {
   const handleVoiceGuidance = () => {
     if ('speechSynthesis' in window) {
       setIsVoiceActive(true);
-      const text = isRoadCutoffSimulated
-        ? "Warning: Primary evacuation road blocked by debris! Rerouting via Elevated High-Ridge Bypass. Proceed 200 meters and turn right."
-        : "Turn right onto High Ridge Highway in 350 meters toward Meppadi Safe Sanctuary. Green corridor is clear.";
-      const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(currentTransit.voiceText);
       utterance.rate = 0.95;
       utterance.onend = () => setIsVoiceActive(false);
       window.speechSynthesis.speak(utterance);
@@ -212,45 +265,110 @@ export default function InteractiveMap() {
   };
 
   const openGoogleMapsIntent = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${targetCoords[0]},${targetCoords[1]}&travelmode=driving`;
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${targetCoords[0]},${targetCoords[1]}&travelmode=${currentTransit.googleMode}`;
     window.open(url, '_blank');
   };
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 font-sans select-none">
       
-      {/* 1. TOP NAVIGATION HEADER & SATELLITE TELEMETRY BADGE */}
+      {/* 1. TOP NAVIGATION HEADER & MULTI-MODAL TRANSIT TIME BAR */}
       <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
         
         {/* Navigation Banner */}
-        <div className="bg-emerald-700/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-2">
+        <div className="bg-slate-950/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-3">
           
-          <div className="flex items-center gap-3.5">
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-white flex-shrink-0 shadow-inner">
+          {/* Active Navigation Step */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="h-10 w-10 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-inner">
               <CornerUpRight className="h-6 w-6 stroke-[2.5]" />
             </div>
-            <div>
-              <div className="text-xs font-mono font-black uppercase tracking-wider text-emerald-200 flex items-center gap-1.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-300 animate-ping" />
-                {isRoadCutoffSimulated ? '⚠️ RIDGE DETOUR ACTIVE' : '🔴 RED ZONE ➔ 🟢 GREEN ZONE ESCAPE'}
+            <div className="min-w-0">
+              <div className="text-[11px] font-mono font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
+                <span>{isRoadCutoffSimulated ? '⚠️ HIGH-RIDGE DETOUR' : '🟢 SAFE SANCTUARY CORRIDOR'}</span>
               </div>
-              <div className="text-sm font-black text-white leading-tight">
+              <div className="text-xs sm:text-sm font-black text-white leading-tight truncate">
                 {activeSteps[0].text}
               </div>
-              <div className="text-[11px] text-emerald-100/90 font-medium">
-                {isRoadCutoffSimulated ? 'Detour 14 min (4.1 km) • Rock Foundation Clear' : '11 min (3.4 km) • Green Corridor Clear'}
+              <div className="text-[11px] text-slate-300 font-mono flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">{currentEta} ({currentDistance})</span>
+                <span>•</span>
+                <span className="text-slate-400">Mode: <strong>{currentTransit.label}</strong></span>
               </div>
             </div>
           </div>
 
+          {/* MULTI-MODAL TRANSIT TIME SWITCHER (BUS, CYCLE, CAR, WALK) */}
+          <div className="flex items-center bg-slate-900 border border-slate-700 p-1 rounded-xl gap-1 text-xs">
+            
+            {/* Bus Time Button */}
+            <button
+              onClick={() => setTransitMode('BUS')}
+              title="Evacuation Bus Convoy Time"
+              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                transitMode === 'BUS'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/40 scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Bus className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="font-mono">{isRoadCutoffSimulated ? '22m' : '16m'}</span>
+            </button>
+
+            {/* Bicycle Time Button */}
+            <button
+              onClick={() => setTransitMode('CYCLE')}
+              title="Bicycle / Two-Wheeler Fast Transit Time"
+              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                transitMode === 'CYCLE'
+                  ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Bike className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="font-mono">{isRoadCutoffSimulated ? '28m' : '21m'}</span>
+            </button>
+
+            {/* Car / Ambulance Time Button */}
+            <button
+              onClick={() => setTransitMode('CAR')}
+              title="Car & Emergency Ambulance Time"
+              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                transitMode === 'CAR'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/40 scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Car className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="font-mono">{isRoadCutoffSimulated ? '14m' : '11m'}</span>
+            </button>
+
+            {/* Walk Time Button */}
+            <button
+              onClick={() => setTransitMode('WALK')}
+              title="Pedestrian / Foot Evacuation Time"
+              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+                transitMode === 'WALK'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40 scale-105'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <Footprints className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="font-mono">{isRoadCutoffSimulated ? '62m' : '48m'}</span>
+            </button>
+
+          </div>
+
+          {/* Action Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleVoiceGuidance}
               title="Voice SOS Navigation Guidance"
-              className={`p-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+              className={`px-3 py-2 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
                 isVoiceActive
                   ? 'bg-amber-500 text-slate-950 border-amber-300 animate-pulse'
-                  : 'bg-emerald-800 hover:bg-emerald-600 text-white border-emerald-400/40'
+                  : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600'
               }`}
             >
               <Volume2 className="h-4 w-4" />
@@ -259,10 +377,10 @@ export default function InteractiveMap() {
 
             <button
               onClick={openGoogleMapsIntent}
-              title="Open in Google Maps App"
-              className="p-2.5 rounded-xl bg-white text-emerald-950 hover:bg-emerald-50 border border-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+              title="Open Live in Google Maps"
+              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95"
             >
-              <ExternalLink className="h-4 w-4 text-emerald-700" />
+              <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">Google GPS</span>
             </button>
           </div>
@@ -512,7 +630,7 @@ export default function InteractiveMap() {
         <CircleMarker
           center={targetCoords}
           radius={14}
-          pathOptions={{ color: '#ffffff', fillColor: '#059669', fillOpacity: 1, weight: 3 }}
+          pathOptions={{ color: '#ffffff', fillColor: '#059669', fillOpacity: 1, weight: 4 }}
         >
           <Tooltip permanent direction="top" offset={[0, -14]}>
             <span className="font-black text-emerald-700 text-xs">🟢 DESTINATION: {safeShelter?.name || 'Safe Sanctuary'}</span>
@@ -527,8 +645,10 @@ export default function InteractiveMap() {
 
       </MapContainer>
 
-      {/* 3. BOTTOM CONTROLS & ROAD CUTOFF DETOUR SWITCHER */}
+      {/* 3. BOTTOM CONTROLS & MULTI-MODAL SUMMARY BAR */}
       <div className="absolute bottom-3 left-3 right-3 z-[1000] flex flex-col sm:flex-row items-center justify-between gap-2 pointer-events-none">
+        
+        {/* Road Cutoff Detour Switcher */}
         <div className="bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 rounded-2xl border border-slate-700 text-white shadow-xl pointer-events-auto flex items-center gap-3">
           <div className="flex items-center gap-2">
             <ShieldAlert className={`h-4 w-4 ${isRoadCutoffSimulated ? 'text-amber-400 animate-pulse' : 'text-slate-400'}`} />
@@ -552,13 +672,29 @@ export default function InteractiveMap() {
           </button>
         </div>
 
-        {/* Route Overview Pill */}
-        <div className="bg-slate-950/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-xl">
-          <span className="text-slate-400">Total Route:</span>
-          <span className="text-emerald-400 font-bold">{isRoadCutoffSimulated ? '4.1 km (Detour)' : '3.4 km (Direct)'}</span>
+        {/* Multi-Modal Mode ETAs Pill */}
+        <div className="bg-slate-950/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-xl flex-wrap">
+          <span className="text-slate-400 font-bold flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5 text-amber-400" />
+            <span>ETAs:</span>
+          </span>
+          <span className={`flex items-center gap-1 font-bold ${transitMode === 'BUS' ? 'text-amber-400' : 'text-slate-300'}`}>
+            <Bus className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '22m' : '16m'} (Bus)
+          </span>
           <span className="text-slate-600">•</span>
-          <span className="text-amber-400 font-bold">{isRoadCutoffSimulated ? '14 Mins' : '11 Mins'}</span>
+          <span className={`flex items-center gap-1 font-bold ${transitMode === 'CYCLE' ? 'text-cyan-400' : 'text-slate-300'}`}>
+            <Bike className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '28m' : '21m'} (Cycle)
+          </span>
+          <span className="text-slate-600">•</span>
+          <span className={`flex items-center gap-1 font-bold ${transitMode === 'CAR' ? 'text-emerald-400' : 'text-slate-300'}`}>
+            <Car className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '14m' : '11m'} (Car)
+          </span>
+          <span className="text-slate-600">•</span>
+          <span className={`flex items-center gap-1 font-bold ${transitMode === 'WALK' ? 'text-purple-400' : 'text-slate-300'}`}>
+            <Footprints className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '62m' : '48m'} (Walk)
+          </span>
         </div>
+
       </div>
 
     </div>

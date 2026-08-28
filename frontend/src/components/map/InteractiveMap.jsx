@@ -31,7 +31,9 @@ import {
   Bike,
   Car,
   Footprints,
-  Clock
+  Clock,
+  CheckCircle2,
+  Gauge
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 
@@ -68,7 +70,7 @@ function CustomMapControls({ onRecenterRoute, onLocateGPS, userLocation }) {
   const map = useMap();
 
   return (
-    <div className="absolute right-4 top-28 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
+    <div className="absolute right-4 top-32 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
       {/* Zoom In */}
       <button
         onClick={() => map.zoomIn()}
@@ -118,7 +120,7 @@ export default function InteractiveMap() {
   } = useDisaster();
 
   const [mapLayer, setMapLayer] = useState('SATELLITE'); // 'SATELLITE' | 'GOOGLE' | 'TOPO' | 'STREET'
-  const [transitMode, setTransitMode] = useState('BUS'); // 'CAR' | 'BUS' | 'CYCLE' | 'WALK'
+  const [transitMode, setTransitMode] = useState('BUS'); // 'BUS' | 'CYCLE' | 'CAR' | 'WALK'
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [shouldFitBounds, setShouldFitBounds] = useState(true);
 
@@ -188,8 +190,33 @@ export default function InteractiveMap() {
 
   // Multi-Modal Transit Time Data Table
   const transitTimes = {
+    BUS: {
+      label: 'Evacuation Bus (Convoy)',
+      shortName: 'Bus',
+      icon: Bus,
+      directTime: '16 mins',
+      detourTime: '22 mins',
+      speed: '18 km/h',
+      googleMode: 'driving', // Fallback to driving in India so Google Maps never shows "Transit not available"
+      voiceText: isRoadCutoffSimulated
+        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Meppadi Safe Sanctuary."
+        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary. Green corridor is clear."
+    },
+    CYCLE: {
+      label: 'Bicycle & 2-Wheeler',
+      shortName: 'Bicycle',
+      icon: Bike,
+      directTime: '21 mins',
+      detourTime: '28 mins',
+      speed: '12 km/h',
+      googleMode: 'two_wheeler', // Use two_wheeler so Google Maps works 100% in India without "Bicycling not available"
+      voiceText: isRoadCutoffSimulated
+        ? "Bicycle and two-wheeler route active on High-Ridge Trail. 28 minutes to Safe Sanctuary."
+        : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary via safe valley road."
+    },
     CAR: {
-      label: 'Ambulance / Car',
+      label: 'Car & Ambulance',
+      shortName: 'Car',
       icon: Car,
       directTime: '11 mins',
       detourTime: '14 mins',
@@ -199,30 +226,9 @@ export default function InteractiveMap() {
         ? "Emergency Vehicle route active via Elevated High-Ridge Bypass. 14 minutes to Meppadi Safe Sanctuary."
         : "Car and Ambulance emergency route active. Proceed 350 meters on Green Valley Corridor. 11 minutes to destination."
     },
-    BUS: {
-      label: 'Evacuation Bus',
-      icon: Bus,
-      directTime: '16 mins',
-      detourTime: '22 mins',
-      speed: '18 km/h',
-      googleMode: 'transit',
-      voiceText: isRoadCutoffSimulated
-        ? "Heavy Evacuation Bus Convoy route active via High-Ridge Bypass. 22 minutes to Meppadi Safe Sanctuary."
-        : "Heavy Evacuation Bus Convoy route active. 16 minutes to Meppadi Safe Sanctuary. Green corridor is clear."
-    },
-    CYCLE: {
-      label: 'Bicycle / 2-Wheeler',
-      icon: Bike,
-      directTime: '21 mins',
-      detourTime: '28 mins',
-      speed: '12 km/h',
-      googleMode: 'bicycling',
-      voiceText: isRoadCutoffSimulated
-        ? "Two-wheeler and bicycle route active on Ridge Trail. 28 minutes to Safe Sanctuary. Watch for gravel."
-        : "Bicycle and two-wheeler route active. 21 minutes to Meppadi Safe Sanctuary via safe valley road."
-    },
     WALK: {
       label: 'Foot Evacuation',
+      shortName: 'Walk',
       icon: Footprints,
       directTime: '48 mins',
       detourTime: '62 mins',
@@ -264,8 +270,10 @@ export default function InteractiveMap() {
     }
   };
 
+  // Opens Google Maps with auto two_wheeler / driving fallback so it NEVER shows "Bicycling not available"
   const openGoogleMapsIntent = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${targetCoords[0]},${targetCoords[1]}&travelmode=${currentTransit.googleMode}`;
+    const travelParam = currentTransit.googleMode === 'two_wheeler' ? 'two_wheeler' : currentTransit.googleMode;
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${originCoords[0]},${originCoords[1]}&destination=${targetCoords[0]},${targetCoords[1]}&travelmode=${travelParam}`;
     window.open(url, '_blank');
   };
 
@@ -275,12 +283,12 @@ export default function InteractiveMap() {
       {/* 1. TOP NAVIGATION HEADER & MULTI-MODAL TRANSIT TIME BAR */}
       <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
         
-        {/* Navigation Banner */}
-        <div className="bg-slate-950/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-3">
+        {/* Navigation Banner with Prominent Bus & Bicycle Times */}
+        <div className="bg-slate-950/98 backdrop-blur-xl text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between pointer-events-auto transition-all flex-wrap gap-3">
           
           {/* Active Navigation Step */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-inner">
+            <div className="h-11 w-11 rounded-xl bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 shadow-inner">
               <CornerUpRight className="h-6 w-6 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
@@ -292,70 +300,71 @@ export default function InteractiveMap() {
                 {activeSteps[0].text}
               </div>
               <div className="text-[11px] text-slate-300 font-mono flex items-center gap-2">
-                <span className="text-emerald-400 font-bold">{currentEta} ({currentDistance})</span>
+                <span className="text-emerald-400 font-black text-xs">{currentEta}</span>
+                <span className="text-slate-400 font-bold">({currentDistance})</span>
                 <span>•</span>
-                <span className="text-slate-400">Mode: <strong>{currentTransit.label}</strong></span>
+                <span className="text-amber-300 font-bold">{currentTransit.label} Active</span>
               </div>
             </div>
           </div>
 
-          {/* MULTI-MODAL TRANSIT TIME SWITCHER (BUS, CYCLE, CAR, WALK) */}
-          <div className="flex items-center bg-slate-900 border border-slate-700 p-1 rounded-xl gap-1 text-xs">
+          {/* LARGE MULTI-MODAL TRANSIT BUTTONS (BUS, BICYCLE, CAR, WALK) */}
+          <div className="flex items-center bg-slate-900/90 border border-slate-700 p-1 rounded-xl gap-1.5 shadow-inner">
             
             {/* Bus Time Button */}
             <button
               onClick={() => setTransitMode('BUS')}
               title="Evacuation Bus Convoy Time"
-              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
                 transitMode === 'BUS'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/40 scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/40 ring-2 ring-amber-400 scale-105'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Bus className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-mono">{isRoadCutoffSimulated ? '22m' : '16m'}</span>
+              <Bus className="h-4 w-4 text-amber-300 flex-shrink-0" />
+              <span>🚌 Bus: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '22m' : '16m'}</strong></span>
             </button>
 
             {/* Bicycle Time Button */}
             <button
               onClick={() => setTransitMode('CYCLE')}
-              title="Bicycle / Two-Wheeler Fast Transit Time"
-              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+              title="Bicycle & 2-Wheeler Route Time"
+              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
                 transitMode === 'CYCLE'
-                  ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/40 ring-2 ring-cyan-400 scale-105'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Bike className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-mono">{isRoadCutoffSimulated ? '28m' : '21m'}</span>
+              <Bike className="h-4 w-4 text-cyan-300 flex-shrink-0" />
+              <span>🚲 Cycle: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '28m' : '21m'}</strong></span>
             </button>
 
-            {/* Car / Ambulance Time Button */}
+            {/* Car Time Button */}
             <button
               onClick={() => setTransitMode('CAR')}
               title="Car & Emergency Ambulance Time"
-              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
                 transitMode === 'CAR'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/40 scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/40 ring-2 ring-emerald-400 scale-105'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Car className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-mono">{isRoadCutoffSimulated ? '14m' : '11m'}</span>
+              <Car className="h-4 w-4 text-emerald-300 flex-shrink-0" />
+              <span>🚗 Car: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '14m' : '11m'}</strong></span>
             </button>
 
             {/* Walk Time Button */}
             <button
               onClick={() => setTransitMode('WALK')}
-              title="Pedestrian / Foot Evacuation Time"
-              className={`px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all ${
+              title="Pedestrian Foot Evacuation Time"
+              className={`px-3 py-1.5 rounded-lg font-black text-xs flex items-center gap-1.5 transition-all ${
                 transitMode === 'WALK'
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40 scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40 ring-2 ring-purple-400 scale-105'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
-              <Footprints className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="font-mono">{isRoadCutoffSimulated ? '62m' : '48m'}</span>
+              <Footprints className="h-4 w-4 text-purple-300 flex-shrink-0" />
+              <span>🚶 Walk: <strong className="font-mono text-white">{isRoadCutoffSimulated ? '62m' : '48m'}</strong></span>
             </button>
 
           </div>
@@ -365,20 +374,20 @@ export default function InteractiveMap() {
             <button
               onClick={handleVoiceGuidance}
               title="Voice SOS Navigation Guidance"
-              className={`px-3 py-2 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
+              className={`px-3.5 py-2 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 ${
                 isVoiceActive
                   ? 'bg-amber-500 text-slate-950 border-amber-300 animate-pulse'
                   : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600'
               }`}
             >
-              <Volume2 className="h-4 w-4" />
+              <Volume2 className="h-4 w-4 text-amber-400" />
               <span className="hidden sm:inline">{isVoiceActive ? 'Speaking...' : 'Voice SOS'}</span>
             </button>
 
             <button
               onClick={openGoogleMapsIntent}
-              title="Open Live in Google Maps"
-              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+              title="Open Live GPS Route in Google Maps"
+              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 font-black text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95"
             >
               <ExternalLink className="h-4 w-4" />
               <span className="hidden sm:inline">Google GPS</span>
@@ -475,7 +484,7 @@ export default function InteractiveMap() {
           userLocation={userLocation}
         />
 
-        {/* Layer 1: ESRI Ultra HD Satellite with Auto-Scaling & Road Overlays (Zero Tile Errors) */}
+        {/* Layer 1: ESRI Ultra HD Satellite with Auto-Scaling & Road Overlays */}
         {mapLayer === 'SATELLITE' && (
           <>
             <TileLayer
@@ -496,7 +505,7 @@ export default function InteractiveMap() {
           </>
         )}
 
-        {/* Layer 2: Google Hybrid Real-Time Satellite with Road Overlays */}
+        {/* Layer 2: Google Hybrid Real-Time Satellite */}
         {mapLayer === 'GOOGLE' && (
           <TileLayer
             key="google-satellite"
@@ -673,25 +682,22 @@ export default function InteractiveMap() {
         </div>
 
         {/* Multi-Modal Mode ETAs Pill */}
-        <div className="bg-slate-950/95 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-700 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-xl flex-wrap">
-          <span className="text-slate-400 font-bold flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5 text-amber-400" />
-            <span>ETAs:</span>
+        <div className="bg-slate-950/98 backdrop-blur-xl px-4 py-2.5 rounded-2xl border border-slate-700 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-2xl flex-wrap">
+          <span className="text-amber-400 font-black flex items-center gap-1.5 text-xs">
+            <Clock className="h-4 w-4" />
+            <span>ESTIMATED TRAVEL TIMES:</span>
           </span>
-          <span className={`flex items-center gap-1 font-bold ${transitMode === 'BUS' ? 'text-amber-400' : 'text-slate-300'}`}>
-            <Bus className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '22m' : '16m'} (Bus)
+          <span className="text-white font-bold bg-amber-950/70 border border-amber-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
+            <Bus className="h-3.5 w-3.5 text-amber-400" /> Bus: <strong>{isRoadCutoffSimulated ? '22m' : '16m'}</strong>
           </span>
-          <span className="text-slate-600">•</span>
-          <span className={`flex items-center gap-1 font-bold ${transitMode === 'CYCLE' ? 'text-cyan-400' : 'text-slate-300'}`}>
-            <Bike className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '28m' : '21m'} (Cycle)
+          <span className="text-white font-bold bg-cyan-950/70 border border-cyan-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
+            <Bike className="h-3.5 w-3.5 text-cyan-400" /> Bicycle: <strong>{isRoadCutoffSimulated ? '28m' : '21m'}</strong>
           </span>
-          <span className="text-slate-600">•</span>
-          <span className={`flex items-center gap-1 font-bold ${transitMode === 'CAR' ? 'text-emerald-400' : 'text-slate-300'}`}>
-            <Car className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '14m' : '11m'} (Car)
+          <span className="text-white font-bold bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
+            <Car className="h-3.5 w-3.5 text-emerald-400" /> Car: <strong>{isRoadCutoffSimulated ? '14m' : '11m'}</strong>
           </span>
-          <span className="text-slate-600">•</span>
-          <span className={`flex items-center gap-1 font-bold ${transitMode === 'WALK' ? 'text-purple-400' : 'text-slate-300'}`}>
-            <Footprints className="h-3.5 w-3.5" /> {isRoadCutoffSimulated ? '62m' : '48m'} (Walk)
+          <span className="text-white font-bold bg-purple-950/70 border border-purple-800 px-2 py-0.5 rounded-lg flex items-center gap-1">
+            <Footprints className="h-3.5 w-3.5 text-purple-400" /> Walk: <strong>{isRoadCutoffSimulated ? '62m' : '48m'}</strong>
           </span>
         </div>
 

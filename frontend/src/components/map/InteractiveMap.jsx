@@ -1,51 +1,130 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Circle, CircleMarker, Polyline, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  MapContainer,
+  TileLayer,
+  Circle,
+  Polyline,
+  CircleMarker,
+  Popup,
+  Tooltip,
+  useMap,
+  useMapEvents
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   Navigation,
-  ShieldCheck,
-  AlertTriangle,
-  LocateFixed,
-  Radio,
-  ExternalLink,
   Volume2,
-  Compass,
-  ArrowUp,
-  CornerUpRight,
-  CornerUpLeft,
-  MapPin,
-  Route,
+  ExternalLink,
   ShieldAlert,
-  Sliders,
+  MapPin,
+  CornerUpRight,
+  ArrowUp,
+  CornerUpLeft,
   Satellite,
   Layers,
+  Map as MapIcon,
   Mountain,
-  Map as MapIcon
+  Plus,
+  Minus,
+  LocateFixed,
+  Compass,
+  Maximize2
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
-import { useLanguage } from '../../context/LanguageContext';
+
+// Dynamic Map Controller: Pans, zooms, and fits bounds seamlessly
+function MapCameraController({ center, waypoints, shouldFitBounds, onBoundsFitted }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center && Array.isArray(center) && center.length === 2) {
+      map.flyTo(center, map.getZoom() || 14, {
+        duration: 1.2,
+        easeLinearity: 0.25
+      });
+    }
+  }, [center, map]);
+
+  useEffect(() => {
+    if (shouldFitBounds && waypoints && waypoints.length >= 2) {
+      const bounds = waypoints.map(w => [w[0], w[1]]);
+      map.fitBounds(bounds, {
+        padding: [60, 60],
+        maxZoom: 16,
+        duration: 1.2
+      });
+      if (onBoundsFitted) onBoundsFitted();
+    }
+  }, [shouldFitBounds, waypoints, map, onBoundsFitted]);
+
+  return null;
+}
+
+// Floating Pan & Zoom Controls Component
+function CustomMapControls({ onRecenterRoute, onLocateGPS, onResetNorth, userLocation }) {
+  const map = useMap();
+
+  return (
+    <div className="absolute right-4 top-24 z-[1000] flex flex-col gap-1.5 pointer-events-auto">
+      {/* Zoom In */}
+      <button
+        onClick={() => map.zoomIn()}
+        title="Zoom In (+)"
+        className="h-9 w-9 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+
+      {/* Zoom Out */}
+      <button
+        onClick={() => map.zoomOut()}
+        title="Zoom Out (-)"
+        className="h-9 w-9 rounded-xl bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+      >
+        <Minus className="h-4 w-4" />
+      </button>
+
+      {/* Recenter Entire Route */}
+      <button
+        onClick={onRecenterRoute}
+        title="Frame Entire Evacuation Route (Fit Bounds)"
+        className="h-9 w-9 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/50 flex items-center justify-center shadow-2xl active:scale-95 transition-all mt-1"
+      >
+        <Navigation className="h-4 w-4" />
+      </button>
+
+      {/* Snap to User GPS */}
+      <button
+        onClick={onLocateGPS}
+        title="Snap to My Live GPS Position"
+        className="h-9 w-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white border border-blue-400/50 flex items-center justify-center shadow-2xl active:scale-95 transition-all"
+      >
+        <LocateFixed className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
 
 export default function InteractiveMap() {
   const {
     simulationData,
     userLocation,
     detectUserLocation,
-    locationLoading,
-    activeRouteHabId,
-    toggleRoute
+    isRoadCutoffSimulated,
+    setIsRoadCutoffSimulated,
   } = useDisaster();
 
-  const { t, localizePlace } = useLanguage();
+  const [mapLayer, setMapLayer] = useState('SATELLITE'); // 'SATELLITE' | 'GOOGLE' | 'TOPO' | 'STREET'
   const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [isRoadCutoffSimulated, setIsRoadCutoffSimulated] = useState(false);
-  const [mapLayer, setMapLayer] = useState('SATELLITE'); // SATELLITE (Default) | TOPO | STREET
+  const [shouldFitBounds, setShouldFitBounds] = useState(true);
 
-  if (!simulationData) return null;
+  const region = simulationData?.region || {};
+  const hazardZones = simulationData?.hazardZones || [];
+  const shelters = simulationData?.reliefShelters || [];
+  const relocationPriorities = simulationData?.relocationPriorities || [];
 
-  const { hazardZones = [], shelters = [], relocationPriorities = [], region = {} } = simulationData;
-  const mapCenter = Array.isArray(region.center) ? region.center : [11.5325, 76.1362];
-
-  // Helper to robustly parse coordinates regardless of format [lat, lon] or {lat, lng}
-  const parseCoords = (c, fallback) => {
+  // Parse Coords Robust Helper
+  const parseCoords = (c, fallback = [11.5325, 76.1362]) => {
     if (!c) return fallback;
     if (Array.isArray(c) && c.length >= 2 && !isNaN(Number(c[0])) && !isNaN(Number(c[1]))) {
       return [Number(c[0]), Number(c[1])];
@@ -58,6 +137,17 @@ export default function InteractiveMap() {
     }
     return fallback;
   };
+
+  const defaultCenter = parseCoords(region.center, [11.5325, 76.1362]);
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
+
+  useEffect(() => {
+    if (region.center) {
+      const c = parseCoords(region.center, [11.5325, 76.1362]);
+      setMapCenter(c);
+      setShouldFitBounds(true);
+    }
+  }, [region.center]);
 
   // Active Origin: User GPS or Highest Priority Red-Zone Habitation
   const originHab = relocationPriorities && relocationPriorities.length > 0 ? relocationPriorities[0] : null;
@@ -73,20 +163,20 @@ export default function InteractiveMap() {
     ? parseCoords(safeShelter.coordinates, [11.552, 76.122])
     : [11.552, 76.122];
 
-  // PRIMARY ROUTE vs SECONDARY DETOUR
+  // CLEAR GPS ROUTE WAYPOINTS
   const primaryWaypoints = [
     originCoords,
-    [Number(originCoords[0]) + 0.004, Number(originCoords[1]) - 0.003],
-    [Number(originCoords[0]) + 0.009, Number(originCoords[1]) - 0.006],
-    [Number(originCoords[0]) + 0.015, Number(originCoords[1]) - 0.010],
+    [Number(originCoords[0]) + 0.0035, Number(originCoords[1]) - 0.0028],
+    [Number(originCoords[0]) + 0.0078, Number(originCoords[1]) - 0.0055],
+    [Number(originCoords[0]) + 0.0135, Number(originCoords[1]) - 0.0085],
     targetCoords
   ];
 
   const detourWaypoints = [
     originCoords,
-    [Number(originCoords[0]) + 0.002, Number(originCoords[1]) + 0.006],
-    [Number(originCoords[0]) + 0.012, Number(originCoords[1]) + 0.003],
-    [Number(originCoords[0]) + 0.019, Number(originCoords[1]) - 0.005],
+    [Number(originCoords[0]) + 0.0022, Number(originCoords[1]) + 0.0055],
+    [Number(originCoords[0]) + 0.0105, Number(originCoords[1]) + 0.0035],
+    [Number(originCoords[0]) + 0.0175, Number(originCoords[1]) - 0.0042],
     targetCoords
   ];
 
@@ -103,7 +193,7 @@ export default function InteractiveMap() {
     { distance: '200 m', icon: CornerUpRight, text: '⚠️ PRIMARY ROAD BLOCKED! Divert East onto High-Ridge Bypass', road: 'Emergency Ridge Line' },
     { distance: '1.8 km', icon: ArrowUp, text: 'Traverse elevated rock foundation corridor (Elev. +420m)', road: 'Ridge Bypass Route' },
     { distance: '600 m', icon: CornerUpLeft, text: 'Descend North spur into Greenfield Sanctuary Gate #1', road: 'North Sanctuary Spur' },
-    { distance: 'Target', icon: MapPin, text: `Arrive at Safe Green Sanctuary (Detour Complete)`, road: 'Safe Zone' }
+    { distance: 'Target', icon: MapPin, text: 'Arrive at Safe Green Sanctuary (Detour Complete)', road: 'Safe Zone' }
   ];
 
   const activeSteps = isRoadCutoffSimulated ? detourSteps : primarySteps;
@@ -127,7 +217,7 @@ export default function InteractiveMap() {
   };
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 font-sans">
+    <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border border-slate-800 bg-slate-950 font-sans select-none">
       
       {/* 1. TOP NAVIGATION HEADER & SATELLITE TELEMETRY BADGE */}
       <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
@@ -184,7 +274,7 @@ export default function InteractiveMap() {
           {/* Satellite Telemetry Stamp */}
           <div className="bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] font-mono text-emerald-300 flex items-center gap-1.5 shadow-lg">
             <Satellite className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-            <span>REAL-TIME SATELLITE: <strong>{mapLayer === 'SATELLITE' ? 'ESRI WORLD HIGH-RES 0.3m' : mapLayer === 'TOPO' ? 'USGS 3D TOPODEM' : 'OSM STREET VECTOR'}</strong></span>
+            <span>REAL-TIME SATELLITE: <strong>{mapLayer === 'SATELLITE' ? 'ESRI WORLD HIGH-RES' : mapLayer === 'GOOGLE' ? 'GOOGLE HYBRID' : mapLayer === 'TOPO' ? '3D TOPODEM' : 'STREET VECTOR'}</strong></span>
           </div>
 
           {/* Map Layer Switcher Pills */}
@@ -192,37 +282,41 @@ export default function InteractiveMap() {
             <button
               onClick={() => setMapLayer('SATELLITE')}
               className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'SATELLITE'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
-                  : 'text-slate-400 hover:text-white'
+                mapLayer === 'SATELLITE' ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Satellite className="h-3 w-3" />
-              <span>🛰️ Satellite (Live)</span>
+              <span>🛰️ HD Satellite</span>
+            </button>
+
+            <button
+              onClick={() => setMapLayer('GOOGLE')}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
+                mapLayer === 'GOOGLE' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Compass className="h-3 w-3 text-cyan-300" />
+              <span>🚀 Hybrid</span>
             </button>
 
             <button
               onClick={() => setMapLayer('TOPO')}
               className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'TOPO'
-                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                  : 'text-slate-400 hover:text-white'
+                mapLayer === 'TOPO' ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Mountain className="h-3 w-3" />
-              <span>⛰️ Terrain (3D)</span>
+              <span>⛰️ Terrain</span>
             </button>
 
             <button
               onClick={() => setMapLayer('STREET')}
               className={`px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all ${
-                mapLayer === 'STREET'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'text-slate-400 hover:text-white'
+                mapLayer === 'STREET' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30' : 'text-slate-400 hover:text-white'
               }`}
             >
               <MapIcon className="h-3 w-3" />
-              <span>🗺️ Street Vector</span>
+              <span>🗺️ Streets</span>
             </button>
           </div>
 
@@ -230,19 +324,45 @@ export default function InteractiveMap() {
 
       </div>
 
-      {/* 2. LEAFLET MAP CONTAINER WITH DYNAMIC SATELLITE TILE LAYERS */}
+      {/* 2. FULL 360-DEGREE FREELY DRAGGABLE LEAFLET MAP CONTAINER */}
       <MapContainer
         center={mapCenter}
         zoom={13}
+        dragging={true}
+        touchZoom={true}
         scrollWheelZoom={true}
-        className="w-full h-full z-10"
+        doubleClickZoom={true}
+        boxZoom={true}
+        keyboard={true}
+        inertia={true}
+        inertiaDeceleration={3000}
+        zoomControl={false}
+        className="w-full h-full z-10 cursor-grab active:cursor-grabbing"
       >
+        {/* Dynamic Camera Controller */}
+        <MapCameraController
+          center={mapCenter}
+          waypoints={activeWaypoints}
+          shouldFitBounds={shouldFitBounds}
+          onBoundsFitted={() => setShouldFitBounds(false)}
+        />
+
+        {/* Floating Pan/Zoom & Recenter Route Controls */}
+        <CustomMapControls
+          onRecenterRoute={() => setShouldFitBounds(true)}
+          onLocateGPS={async () => {
+            await detectUserLocation();
+            setShouldFitBounds(true);
+          }}
+          userLocation={userLocation}
+        />
+
         {/* Layer 1: ESRI Ultra HD Satellite with Auto-Scaling & Road Overlays (Zero Tile Errors) */}
         {mapLayer === 'SATELLITE' && (
           <>
             <TileLayer
               key="esri-satellite"
-              attribution='Tiles &copy; Esri &mdash; High-Resolution Earth Observation Satellite'
+              attribution='Tiles &copy; Esri &mdash; Earth Observation'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               maxNativeZoom={18}
               maxZoom={20}
@@ -318,14 +438,38 @@ export default function InteractiveMap() {
           );
         })}
 
-        {/* Contour-Snapped Road Evacuation Path */}
+        {/* ========================================================================= */}
+        {/* CRYSTAL-CLEAR MULTI-LAYER GPS EVACUATION NAVIGATION ROUTE (HIGH CONTRAST) */}
+        {/* ========================================================================= */}
+
+        {/* Layer A: Outer Route Shadow / High-Contrast Casing */}
+        <Polyline
+          positions={activeWaypoints}
+          pathOptions={{
+            color: '#022c22',
+            weight: 12,
+            opacity: 0.9,
+          }}
+        />
+
+        {/* Layer B: Core Bright GPS Solid Navigation Ribbon */}
         <Polyline
           positions={activeWaypoints}
           pathOptions={{
             color: isRoadCutoffSimulated ? '#f59e0b' : '#10b981',
-            weight: 6,
-            opacity: 0.9,
-            dashArray: '10, 10',
+            weight: 8,
+            opacity: 1.0,
+          }}
+        />
+
+        {/* Layer C: Inner White Directional Pulse Dash (GPS Convoy Flow) */}
+        <Polyline
+          positions={activeWaypoints}
+          pathOptions={{
+            color: '#ffffff',
+            weight: 3,
+            opacity: 0.95,
+            dashArray: '8, 12',
           }}
         />
 
@@ -333,9 +477,12 @@ export default function InteractiveMap() {
         {isRoadCutoffSimulated && (
           <CircleMarker
             center={primaryWaypoints[2]}
-            radius={12}
+            radius={14}
             pathOptions={{ color: '#ef4444', fillColor: '#7f1d1d', fillOpacity: 1, weight: 3 }}
           >
+            <Tooltip permanent direction="top" offset={[0, -10]}>
+              <span className="font-bold text-red-600 text-xs">🛑 ROAD BLOCKED</span>
+            </Tooltip>
             <Popup>
               <div className="p-1 text-xs">
                 <strong className="text-red-600 block">🛑 Main Road Blocked by Debris Flow</strong>
@@ -348,9 +495,12 @@ export default function InteractiveMap() {
         {/* Origin Marker (Red Zone Danger) */}
         <CircleMarker
           center={originCoords}
-          radius={10}
-          pathOptions={{ color: '#ef4444', fillColor: '#dc2626', fillOpacity: 0.9, weight: 3 }}
+          radius={12}
+          pathOptions={{ color: '#ffffff', fillColor: '#dc2626', fillOpacity: 1, weight: 3 }}
         >
+          <Tooltip permanent direction="top" offset={[0, -12]}>
+            <span className="font-black text-rose-700 text-xs">🚨 START: {originHab?.name || 'Red Hazard Zone'}</span>
+          </Tooltip>
           <Popup>
             <div className="p-1 text-xs font-bold text-red-600">
               🔴 START: Evacuation Point (Red Hazard Zone)
@@ -361,9 +511,12 @@ export default function InteractiveMap() {
         {/* Destination Shelter Marker (Green Zone Safe Sanctuary) */}
         <CircleMarker
           center={targetCoords}
-          radius={12}
-          pathOptions={{ color: '#10b981', fillColor: '#059669', fillOpacity: 1, weight: 4 }}
+          radius={14}
+          pathOptions={{ color: '#ffffff', fillColor: '#059669', fillOpacity: 1, weight: 3 }}
         >
+          <Tooltip permanent direction="top" offset={[0, -14]}>
+            <span className="font-black text-emerald-700 text-xs">🟢 DESTINATION: {safeShelter?.name || 'Safe Sanctuary'}</span>
+          </Tooltip>
           <Popup>
             <div className="p-1 text-xs space-y-1">
               <strong className="text-emerald-700 block">🟢 TARGET: {safeShelter?.name || 'Safe Sanctuary'}</strong>
@@ -371,6 +524,7 @@ export default function InteractiveMap() {
             </div>
           </Popup>
         </CircleMarker>
+
       </MapContainer>
 
       {/* 3. BOTTOM CONTROLS & ROAD CUTOFF DETOUR SWITCHER */}
@@ -384,25 +538,27 @@ export default function InteractiveMap() {
           </div>
 
           <button
-            onClick={() => setIsRoadCutoffSimulated(!isRoadCutoffSimulated)}
-            className={`px-3 py-1.5 rounded-xl font-black text-[10px] uppercase transition-all shadow-md active:scale-95 ${
+            onClick={() => {
+              setIsRoadCutoffSimulated(!isRoadCutoffSimulated);
+              setShouldFitBounds(true);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md active:scale-95 ${
               isRoadCutoffSimulated
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/30'
-                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600'
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                : 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30'
             }`}
           >
-            {isRoadCutoffSimulated ? '✓ Switched to Ridge Detour' : 'Simulate Road Blockade'}
+            <span>{isRoadCutoffSimulated ? '✓ Clear Blockade (Use Main Road)' : '⚡ Simulate Road Blockade'}</span>
           </button>
         </div>
 
-        <button
-          onClick={detectUserLocation}
-          disabled={locationLoading}
-          className="bg-slate-900/95 hover:bg-slate-800 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-slate-700 text-white shadow-xl pointer-events-auto text-xs font-bold flex items-center gap-2 transition-all active:scale-95"
-        >
-          <LocateFixed className={`h-4 w-4 text-emerald-400 ${locationLoading ? 'animate-spin' : ''}`} />
-          <span>{locationLoading ? 'Syncing...' : 'My Live GPS'}</span>
-        </button>
+        {/* Route Overview Pill */}
+        <div className="bg-slate-950/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 text-white text-xs font-mono flex items-center gap-3 pointer-events-auto shadow-xl">
+          <span className="text-slate-400">Total Route:</span>
+          <span className="text-emerald-400 font-bold">{isRoadCutoffSimulated ? '4.1 km (Detour)' : '3.4 km (Direct)'}</span>
+          <span className="text-slate-600">•</span>
+          <span className="text-amber-400 font-bold">{isRoadCutoffSimulated ? '14 Mins' : '11 Mins'}</span>
+        </div>
       </div>
 
     </div>

@@ -8,6 +8,9 @@ const DisasterContext = createContext();
 
 const ALERTS_STORAGE_KEY = 'REDZONE_SHARED_ALERTS_STORE_V3';
 
+const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : 'https://redzone-backend.onrender.com/api');
+
+
 const GOVT_OFFICIAL_ID_REGISTRY = [
   { prefix: "NDRF", dept: "National Disaster Response Force", valid: true },
   { prefix: "SDMA", dept: "State Disaster Management Authority", valid: true },
@@ -70,7 +73,7 @@ export function DisasterProvider({ children }) {
   const fetchLiveAlertsFromBackend = async () => {
     try {
       if (navigator.onLine) {
-        const res = await fetch('http://localhost:5001/api/alerts');
+        const res = await fetch(`${API_BASE}/alerts`);
         const json = await res.json();
         if (json.success && Array.isArray(json.alerts)) {
           setAlerts(json.alerts);
@@ -98,7 +101,7 @@ export function DisasterProvider({ children }) {
 
     try {
       if (navigator.onLine) {
-        const res = await fetch('http://localhost:5001/api/alerts', {
+        const res = await fetch(`${API_BASE}/alerts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -126,7 +129,7 @@ export function DisasterProvider({ children }) {
     setAlerts(prev => prev.filter(a => a.id !== alertId));
     try {
       if (navigator.onLine && alertId.length === 24) {
-        await fetch(`http://localhost:5001/api/alerts/${alertId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/alerts/${alertId}`, { method: 'DELETE' });
       }
       await fetchLiveAlertsFromBackend();
     } catch (e) {}
@@ -139,7 +142,7 @@ export function DisasterProvider({ children }) {
     localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify([]));
     try {
       if (navigator.onLine) {
-        await fetch('http://localhost:5001/api/alerts/clear-all', { method: 'DELETE' });
+        await fetch(`${API_BASE}/alerts/clear-all`, { method: 'DELETE' });
       }
     } catch (e) {}
     setSearchNotification("✓ All Alerts Cleared from Database");

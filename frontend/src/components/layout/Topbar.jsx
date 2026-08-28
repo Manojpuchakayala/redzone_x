@@ -207,7 +207,7 @@ export default function Topbar() {
   }, []);
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-20 relative shadow-md overflow-visible">
+    <header className="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-[5000] relative shadow-md overflow-visible">
       
       {/* Left: Incident Area & 1-Click SOS Action */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -291,7 +291,7 @@ export default function Topbar() {
 
           {/* Autocomplete Suggestions Popup with Live Distance & GPS Sorting */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 sm:right-auto sm:w-96 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden z-[3000] text-xs py-2">
+            <div className="absolute top-full right-0 w-[310px] sm:w-[420px] mt-2 bg-slate-900/98 backdrop-blur-xl border-2 border-slate-700 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-[9999] text-xs py-2">
               
               {/* TOP ITEM: 📍 Use Current GPS Location */}
               <button

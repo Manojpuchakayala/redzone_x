@@ -237,33 +237,57 @@ export default function InteractiveMap() {
         scrollWheelZoom={true}
         className="w-full h-full z-10"
       >
-        {/* Layer 1: ESRI High-Resolution Real-Time Global Satellite Imagery */}
+        {/* Layer 1: ESRI Ultra HD Satellite with Auto-Scaling & Road Overlays (Zero Tile Errors) */}
         {mapLayer === 'SATELLITE' && (
+          <>
+            <TileLayer
+              key="esri-satellite"
+              attribution='Tiles &copy; Esri &mdash; High-Resolution Earth Observation Satellite'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxNativeZoom={18}
+              maxZoom={20}
+            />
+            <TileLayer
+              key="esri-reference-overlay"
+              attribution='&copy; Esri Street & Placename Reference'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxNativeZoom={18}
+              maxZoom={20}
+              opacity={0.85}
+            />
+          </>
+        )}
+
+        {/* Layer 2: Google Hybrid Real-Time Satellite with Road Overlays */}
+        {mapLayer === 'GOOGLE' && (
           <TileLayer
-            key="esri-satellite"
-            attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={19}
+            key="google-satellite"
+            attribution='&copy; Google Earth Satellite Hybrid'
+            url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+            maxNativeZoom={20}
+            maxZoom={22}
           />
         )}
 
-        {/* Layer 2: OpenTopoMap 3D Topographic & Mountain Elevation */}
+        {/* Layer 3: OpenTopoMap 3D Topographic & Mountain Elevation */}
         {mapLayer === 'TOPO' && (
           <TileLayer
             key="opentopo-terrain"
             attribution='&copy; OpenTopoMap (CC-BY-SA), SRTM CartoDEM Elevation'
             url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-            maxZoom={17}
+            maxNativeZoom={17}
+            maxZoom={20}
           />
         )}
 
-        {/* Layer 3: OpenStreetMap Street & Road Vectors */}
+        {/* Layer 4: OpenStreetMap Street & Road Vectors */}
         {mapLayer === 'STREET' && (
           <TileLayer
             key="osm-street"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maxZoom={19}
+            maxNativeZoom={19}
+            maxZoom={21}
           />
         )}
 

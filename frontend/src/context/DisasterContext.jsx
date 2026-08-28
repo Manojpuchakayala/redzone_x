@@ -8,7 +8,7 @@ const DisasterContext = createContext();
 
 const ALERTS_STORAGE_KEY = 'REDZONE_SHARED_ALERTS_STORE_V3';
 
-const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : 'https://redzone-backend.onrender.com/api');
+const API_BASE = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5001/api' : 'https://redzone-x.onrender.com/api');
 
 
 const GOVT_OFFICIAL_ID_REGISTRY = [

@@ -79,7 +79,7 @@ export default function Topbar() {
   }, []);
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-white px-6 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 z-20 relative shadow-md">
+    <header className="bg-slate-900 border-b border-slate-800 text-white px-4 sm:px-6 py-2 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0 z-20 relative shadow-md overflow-hidden">
       
       {/* Left: Incident Area & 1-Click SOS Action */}
       <div className="flex items-center gap-2.5 flex-wrap">
@@ -142,7 +142,7 @@ export default function Topbar() {
                 setIsDropdownOpen(true);
               }}
               placeholder="Search city, ward, or coordinates..."
-              className="bg-slate-800 hover:bg-slate-750 focus:bg-slate-900 border-2 border-slate-700 focus:border-red-500 rounded-xl pl-9 pr-8 py-1.5 text-xs font-semibold text-white placeholder-slate-400 focus:outline-none w-72 sm:w-80 shadow-inner transition-all"
+              className="bg-slate-800 hover:bg-slate-750 focus:bg-slate-900 border-2 border-slate-700 focus:border-red-500 rounded-xl pl-9 pr-8 py-1.5 text-xs font-semibold text-white placeholder-slate-400 focus:outline-none w-40 sm:w-52 lg:w-64 focus:w-72 shadow-inner transition-all"
             />
             {searchQuery && (
               <button
@@ -227,7 +227,7 @@ export default function Topbar() {
         {/* Export Report Action */}
         <button
           onClick={() => generateAssessmentReport(simulationData)}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black shadow-md shadow-red-600/30 transition-all active:scale-95 flex-shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black shadow-md shadow-red-600/30 transition-all active:scale-95 flex-shrink-0 whitespace-nowrap mr-1"
         >
           <FileDown className="h-4 w-4" />
           <span className="hidden sm:inline">{t('exportPdf')}</span>

@@ -1,0 +1,24 @@
+================================================================================
+  RED-ZONE X : NATIONAL DISASTER DECISION SUPPORT PLATFORM
+  Official Cloud Deployment Links & System Reference Guide
+================================================================================
+
+1. LIVE FRONTEND APPLICATION (Vercel Global CDN)
+   • Main Platform:          https://redzone-x.vercel.app
+   • Real-Time Satellite Map: https://redzone-x.vercel.app/map
+   • Operations Dashboard:   https://redzone-x.vercel.app/dashboard
+   • Collaborative Alerts:   https://redzone-x.vercel.app/alerts
+   • Admin Command Center:   https://redzone-x.vercel.app/admin
+   • Shelters & Standards:   https://redzone-x.vercel.app/shelters
+
+2. LIVE BACKEND API & CLOUD DATABASE (Render Cloud + MongoDB Atlas)
+   • API Root:               https://redzone-x.onrender.com/
+   • Health Endpoint:        https://redzone-x.onrender.com/api/health
+   • Central Alerts API:     https://redzone-x.onrender.com/api/alerts
+   • GitHub Repository:      https://github.com/Manojpuchakayala/redzone_x
+   • Cloud Database:         consumer-trust-db.rxdifnq.mongodb.net/redzone_x
+
+3. PRE-CONFIGURED LOCAL BACKUP
+   • Zip Archive:            C:\Users\manoj\Downloads\RED-ZONE-X_Project.zip
+   • 1-Click Windows Run:    Unzip and double-click START_PROJECT.bat
+================================================================================

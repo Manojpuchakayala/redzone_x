@@ -1,6 +1,6 @@
 import React from 'react';
-import { jsPDF } from 'jspdf';
 import { Shield, X, Download } from 'lucide-react';
+import { generateAssessmentReport } from '../services/pdfService';
 
 export default function ActionReportModal({ isOpen, onClose, simulationData }) {
   if (!isOpen || !simulationData) return null;
@@ -8,32 +8,7 @@ export default function ActionReportModal({ isOpen, onClose, simulationData }) {
   const { region, summary, relocationPriorities, timestamp } = simulationData;
 
   const handleDownloadPdf = () => {
-    const doc = new jsPDF();
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("NATIONAL DISASTER MANAGEMENT AUTHORITY", 20, 20);
-    doc.setFontSize(11);
-    doc.text("TACTICAL HABITATION RELOCATION & EVACUATION DIRECTIVE", 20, 28);
-    
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Order Ref: NDMA/OPS/${region.id.toUpperCase()}/2026/048`, 20, 36);
-    doc.text(`Issued At: ${new Date(timestamp).toLocaleString('en-IN')}`, 20, 42);
-    doc.text(`Jurisdiction: ${region.name}`, 20, 48);
-    doc.text(`Total Mandatory Evacuees: ${summary.totalDisplacedPopulation} Citizens`, 20, 54);
-
-    doc.setFont("helvetica", "bold");
-    doc.text("DISPATCH ROSTER & SHELTER ALLOCATION:", 20, 66);
-
-    doc.setFontSize(8.5);
-    doc.setFont("helvetica", "normal");
-    let y = 74;
-    relocationPriorities?.slice(0, 5).forEach((h, i) => {
-      doc.text(`Rank #${i + 1} | ${h.name} (Pop: ${h.population}) -> Assigned: ${h.assignedShelter?.name || "Transit Camp"}`, 20, y);
-      y += 8;
-    });
-
-    doc.save(`NDMA_Evacuation_Directive_${region.id}.pdf`);
+    generateAssessmentReport(simulationData, "Tactical Habitation Relocation & Evacuation Directive");
   };
 
   return (

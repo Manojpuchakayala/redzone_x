@@ -43,22 +43,22 @@ export default function RiskMapPage() {
 
         {/* Selected Zone Inspection Panel */}
         {inspectedZone && (
-          <div className="absolute top-4 left-4 z-[1000] w-80 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-4 shadow-2xl text-xs space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <strong className="text-sm font-black text-white">{inspectedZone.name}</strong>
-              <button onClick={() => setInspectedZone(null)} className="text-slate-400 hover:text-white">
-                <X className="h-4 w-4" />
+          <div className="absolute bottom-12 left-4 z-[1000] w-72 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3.5 shadow-2xl text-xs space-y-2.5 max-h-[65vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+              <strong className="text-xs font-black text-white truncate pr-2">{inspectedZone.name}</strong>
+              <button onClick={() => setInspectedZone(null)} className="text-slate-400 hover:text-white p-0.5 rounded hover:bg-slate-800">
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <div className="space-y-1.5 text-slate-300">
+            <div className="space-y-1 text-slate-300 text-[11px]">
               <div className="flex justify-between">
                 <span>Classification:</span>
-                <span style={{ color: inspectedZone.colorHex }} className="font-bold">{inspectedZone.zoneCategory.replace('_', ' ')}</span>
+                <span style={{ color: inspectedZone.colorHex }} className="font-bold">{inspectedZone.zoneCategory?.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between">
-                <span>Multi-Hazard Index (MHI):</span>
-                <strong className="text-white font-mono">{Math.round(inspectedZone.mhi * 100)}%</strong>
+                <span>Multi-Hazard Index:</span>
+                <strong className="text-white font-mono">{Math.round((inspectedZone.mhi || 0.8) * 100)}%</strong>
               </div>
               <div className="flex justify-between">
                 <span>Slope Angle:</span>
@@ -66,7 +66,7 @@ export default function RiskMapPage() {
               </div>
               <div className="flex justify-between">
                 <span>Soil:</span>
-                <strong className="text-white">{inspectedZone.soilType}</strong>
+                <strong className="text-white truncate max-w-[130px]">{inspectedZone.soilType}</strong>
               </div>
               <div className="flex justify-between">
                 <span>Landslide Risk:</span>
@@ -78,7 +78,7 @@ export default function RiskMapPage() {
               </div>
             </div>
 
-            <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-[10px] text-slate-400">
               <strong className="text-amber-400 block mb-0.5">{t('actionTitle')}:</strong>
               {inspectedZone.actionRecommendation}
             </div>

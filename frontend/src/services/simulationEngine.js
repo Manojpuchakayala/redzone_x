@@ -179,6 +179,7 @@ export function runSimulation({
     region: data,
     hazardZones: computedZones,
     shelters: availableShelters,
+    reliefShelters: availableShelters,
     hospitals: data.hospitals || [],
     relocationPriorities: assignedHabitations,
     summary: {

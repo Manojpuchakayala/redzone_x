@@ -57,3 +57,41 @@ html, body {
 .gov-red-pulse {
   animation: red-zone-glow 2s infinite ease-in-out;
 }
+
+/* Live GPS Radar Pulse Animation */
+@keyframes gps-radar-pulse {
+  0% {
+    stroke-width: 2;
+    stroke-opacity: 1;
+    fill-opacity: 0.4;
+  }
+  50% {
+    stroke-width: 8;
+    stroke-opacity: 0.5;
+    fill-opacity: 0.2;
+  }
+  100% {
+    stroke-width: 14;
+    stroke-opacity: 0;
+    fill-opacity: 0.05;
+  }
+}
+
+.gps-live-beacon {
+  animation: gps-radar-pulse 1.8s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-origin: center;
+}
+
+@keyframes gps-trail-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(6, 182, 212, 0.8));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(6, 182, 212, 1));
+  }
+}
+
+.gps-trail-active {
+  animation: gps-trail-glow 2s infinite ease-in-out;
+}
+

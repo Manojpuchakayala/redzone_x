@@ -14,7 +14,8 @@ import {
   Compass,
   Flame,
   Waves,
-  Mountain
+  Mountain,
+  Radio
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -87,6 +88,9 @@ export default function Topbar() {
     searchAndSetLocation,
     searchNotification,
     userLocation,
+    liveLocation,
+    isLiveTracking,
+    toggleLiveTracking,
     locationLoading,
     locationError,
     detectUserLocation,
@@ -380,6 +384,22 @@ export default function Topbar() {
             </div>
           )}
         </div>
+
+        {/* Continuous Live GPS Tracker Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleLiveTracking}
+          title={isLiveTracking ? "Live GPS Active (Click to Pause)" : "Start Continuous Live GPS Tracking"}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all active:scale-95 flex-shrink-0 ${
+            isLiveTracking
+              ? 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border-cyan-300 shadow-md shadow-cyan-500/40'
+              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+          }`}
+        >
+          <Radio className={`h-3.5 w-3.5 ${isLiveTracking ? 'text-slate-950 animate-pulse' : 'text-cyan-400'}`} />
+          <span className="hidden md:inline">{isLiveTracking ? 'Live GPS: ON' : 'Live GPS'}</span>
+          <span className="md:hidden">{isLiveTracking ? 'GPS ON' : 'GPS'}</span>
+        </button>
 
         {/* 🌐 Multilingual Language Switcher Dropdown */}
         <div className="flex items-center bg-slate-950 border border-slate-800 px-2 py-1.5 rounded-xl text-xs font-bold shadow-inner gap-1 flex-shrink-0">

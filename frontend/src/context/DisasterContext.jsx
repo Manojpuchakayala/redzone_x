@@ -31,11 +31,17 @@ export function DisasterProvider({ children }) {
   const [hazardIntensity, setHazardIntensity] = useState(1.0);
   const [disabledShelterIds, setDisabledShelterIds] = useState([]);
   
-  // Geolocation State
+  // Geolocation & Continuous Live Tracking State
   const [userLocation, setUserLocation] = useState(null);
+  const [liveLocation, setLiveLocation] = useState(null);
+  const [isLiveTracking, setIsLiveTracking] = useState(false);
+  const [gpsTrail, setGpsTrail] = useState([]);
+  const [autoCenterGps, setAutoCenterGps] = useState(true);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState(null);
   const [showGpsEvacRoute, setShowGpsEvacRoute] = useState(true);
+  const [isRoadCutoffSimulated, setIsRoadCutoffSimulated] = useState(false);
+  const watchIdRef = useRef(null);
 
   // Online / Offline & Multi-User Cloud Sync State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -93,6 +99,16 @@ export function DisasterProvider({ children }) {
         fetchLiveAlertsFromBackend();
       }
     }, 4000);
+
+    // Auto-sync live GPS location on mount if user has allowed location access
+    if (typeof window !== 'undefined' && 'geolocation' in navigator && navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'granted') {
+          detectUserLocation();
+        }
+      }).catch(() => {});
+    }
+
     return () => clearInterval(interval);
   }, []);
 
@@ -259,12 +275,112 @@ export function DisasterProvider({ children }) {
     setActiveRouteHabId(null);
   };
 
+  const startLiveTracking = () => {
+    if (watchIdRef.current !== null) {
+      GeolocationService.clearLiveTracking(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+
+    setLocationLoading(true);
+    setLocationError(null);
+    setIsLiveTracking(true);
+
+    const watchId = GeolocationService.watchLivePosition(
+      (pos) => {
+        setLocationLoading(false);
+        setLiveLocation(pos);
+        setUserLocation(pos);
+
+        // Update breadcrumb motion history (reset on large jumps like region change)
+        setGpsTrail((prevTrail) => {
+          const newPoint = [pos.latitude, pos.longitude];
+          if (prevTrail.length === 0) return [newPoint];
+          const lastPoint = prevTrail[prevTrail.length - 1];
+          const distKm = GeolocationService.calculateDistanceKm(
+            lastPoint[0],
+            lastPoint[1],
+            newPoint[0],
+            newPoint[1]
+          );
+          // If distance jump is > 1.5 km (teleport/initial fix/new region), start fresh trail
+          if (distKm > 1.5) {
+            return [newPoint];
+          }
+          // Only append if local movement is at least 3 meters (0.003 km)
+          if (distKm >= 0.003) {
+            return [...prevTrail.slice(-60), newPoint]; // Keep last 60 local points
+          }
+          return prevTrail;
+        });
+
+        // Synthesize dynamic location model centered on user's live coordinates
+        setCustomLocationData((prev) => {
+          if (!prev || selectedRegion !== 'custom_detected' || Math.abs(prev.center[0] - pos.latitude) > 0.02 || Math.abs(prev.center[1] - pos.longitude) > 0.02) {
+            return synthesizeDynamicLocationModel(
+              pos.latitude,
+              pos.longitude,
+              "Live GPS Location"
+            );
+          }
+          return prev;
+        });
+        setSelectedRegion('custom_detected');
+      },
+      (err) => {
+        setLocationLoading(false);
+        setLocationError(err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+
+    watchIdRef.current = watchId;
+    setSearchNotification("🛰️ Continuous Live GPS Tracking Active");
+    setTimeout(() => setSearchNotification(null), 4000);
+  };
+
+  const stopLiveTracking = () => {
+    if (watchIdRef.current !== null) {
+      GeolocationService.clearLiveTracking(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsLiveTracking(false);
+    setSearchNotification("Live GPS Tracking Paused");
+    setTimeout(() => setSearchNotification(null), 3000);
+  };
+
+  const toggleLiveTracking = () => {
+    if (isLiveTracking) {
+      stopLiveTracking();
+    } else {
+      startLiveTracking();
+    }
+  };
+
+  const toggleAutoCenterGps = () => {
+    setAutoCenterGps(prev => !prev);
+  };
+
+  const clearGpsTrail = () => {
+    setGpsTrail([]);
+  };
+
+  // Clean up watcher on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        GeolocationService.clearLiveTracking(watchIdRef.current);
+      }
+    };
+  }, []);
+
   const detectUserLocation = async () => {
     setLocationLoading(true);
     setLocationError(null);
     try {
       const pos = await GeolocationService.getCurrentPosition();
       setUserLocation(pos);
+      setLiveLocation(pos);
+      setGpsTrail([[pos.latitude, pos.longitude]]);
 
       const dynamicModel = synthesizeDynamicLocationModel(
         pos.latitude,
@@ -275,7 +391,7 @@ export function DisasterProvider({ children }) {
       setSelectedRegion('custom_detected');
       setActiveRouteHabId(null);
       setShowGpsEvacRoute(true);
-      setSearchNotification(`📍 GPS Synced: ${pos.latitude.toFixed(4)}° N, ${pos.longitude.toFixed(4)}° E`);
+      setSearchNotification(`📍 GPS Synced: ${pos.latitude.toFixed(4)}° N, ${pos.longitude.toFixed(4)}° E (±${pos.accuracy}m)`);
       setTimeout(() => setSearchNotification(null), 4000);
     } catch (err) {
       setLocationError(err.message);
@@ -406,6 +522,19 @@ export function DisasterProvider({ children }) {
     setActiveRouteHabId(prev => prev === habId ? null : habId);
   };
 
+  const toggleRoadCutoffSimulated = () => {
+    setIsRoadCutoffSimulated(prev => {
+      const next = !prev;
+      setSearchNotification(
+        next
+          ? "⚠️ ROAD BLOCKADE SIMULATED: Elevated Ridge Detour Corridor Active (+35% Transit Time)"
+          : "✓ Road Blockade Cleared: Direct Safe Corridor Restored"
+      );
+      setTimeout(() => setSearchNotification(null), 4000);
+      return next;
+    });
+  };
+
   const approveUser = (userId) => {
     setManagedUsers(prev => prev.map(u => u.id === userId ? { ...u, status: 'APPROVED' } : u));
     setSearchNotification("✓ User account approved by Administrator");
@@ -435,6 +564,18 @@ export function DisasterProvider({ children }) {
         disabledShelterIds,
         setDisabledShelterIds,
         userLocation,
+        liveLocation,
+        isLiveTracking,
+        gpsTrail,
+        autoCenterGps,
+        startLiveTracking,
+        stopLiveTracking,
+        toggleLiveTracking,
+        toggleAutoCenterGps,
+        clearGpsTrail,
+        isRoadCutoffSimulated,
+        setIsRoadCutoffSimulated,
+        toggleRoadCutoffSimulated,
         locationLoading,
         locationError,
         detectUserLocation,

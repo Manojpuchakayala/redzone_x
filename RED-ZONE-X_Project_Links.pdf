@@ -1,0 +1,588 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Annots [
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 672.5073228346456062 316.4519685039370529 661.0073228346456062] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 638.4915748031495468 339.7519685039370643 626.9915748031495468] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app/map) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 604.4758267716534874 370.1519685039370984 592.9758267716534874] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app/dashboard) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 570.460078740157428 345.7519685039370643 558.960078740157428] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app/alerts) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 536.4443307086613686 348.6519685039370415 524.9443307086613686] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app/admin) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 502.4285826771653092 357.3519685039370302 490.9285826771653092] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.vercel.app/shelters) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 434.3970866141731335 336.5519685039370188 422.8970866141731335] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.onrender.com/) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 400.3813385826770741 383.0519685039370756 388.8813385826770741] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.onrender.com/api/health) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 366.3655905511810147 380.2519685039370643 354.8655905511810147] /Border [0 0 0] /A <</S /URI /URI (https://redzone-x.onrender.com/api/alerts) >> >>
+<</Type /Annot /Subtype /Link /Rect [184.2519685039370358 332.3498425196849553 414.4519685039370529 320.8498425196848984] /Border [0 0 0] /A <</S /URI /URI (https://github.com/Manojpuchakayala/redzone_x) >> >>
+]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 7952
+>>
+stream
+0.5670000000000001 w
+0 G
+0.06 0.09 0.16 rg
+0. 841.8899999999999864 595.2799999999999727 -119.0551181102362364 re
+f
+0.86 0.15 0.15 rg
+0. 722.8348818897637784 595.2799999999999727 -7.0866141732283472 re
+f
+BT
+/F2 20 Tf
+23. TL
+1. g
+39.6850393700787407 790.8663779527558972 Td
+(RED-ZONE X) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.937 0.267 0.267 rg
+175.748031496063021 790.8663779527558972 Td
+(NATIONAL DISASTER DECISION SUPPORT PLATFORM) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.796 0.835 0.882 rg
+39.6850393700787407 762.5199212598424765 Td
+(Official Cloud Deployment Links, API Endpoints & System Documentation) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.796 0.835 0.882 rg
+39.6850393700787407 742.6774015748030706 Td
+(Generated: 29/08/2026 | SIH 2026 Final Deployment) Tj
+ET
+0.86 0.15 0.15 rg
+39.6850393700787407 700.1577165354329964 8.5039370078740166 -19.8425196850393704 re
+f
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.059 0.09 0.165 rg
+56.6929133858267775 684.5671653543306547 Td
+(1. Global Production Web Application \(Vercel Global CDN\)) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 663.3073228346456744 Td
+(Main Application:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 663.3073228346456744 Td
+(https://redzone-x.vercel.app) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 650.5514173228345953 Td
+(Public landing page with 1-click Instant SOS Evacuation Pass \(No Login Required\).) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 629.291574803149615 Td
+(Satellite GIS Map:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 629.291574803149615 Td
+(https://redzone-x.vercel.app/map) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 616.5356692913385359 Td
+(Esri World 0.3m Real-Time Satellite Map + GPS Turn-by-Turn Navigator + Voice SOS.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 595.2758267716535556 Td
+(Operations Dashboard:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 595.2758267716535556 Td
+(https://redzone-x.vercel.app/dashboard) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 582.5199212598424765 Td
+(Multi-hazard vulnerability KPIs, carrying capacity index \(CCI\), and relief allocations.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 561.2600787401574962 Td
+(Collaborative Alerts:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 561.2600787401574962 Td
+(https://redzone-x.vercel.app/alerts) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 548.5041732283464171 Td
+(Live multi-user emergency broadcasts synchronized in real time via MongoDB Atlas Cloud.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 527.2443307086614368 Td
+(Admin Command Center:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 527.2443307086614368 Td
+(https://redzone-x.vercel.app/admin) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 514.4884251968503577 Td
+(Automated IMD Radar, GSI sensors & CWC river gauge fact-checking intelligence center.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 493.2285826771653205 Td
+(Shelters & Sphere Standards:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 493.2285826771653205 Td
+(https://redzone-x.vercel.app/shelters) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 480.4726771653542983 Td
+(Live compliance monitor tracking 45 LPCD drinking water and 3.5 m2/person living space.) Tj
+ET
+0.86 0.15 0.15 rg
+39.6850393700787407 462.0474803149605805 8.5039370078740166 -19.8425196850393704 re
+f
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.059 0.09 0.165 rg
+56.6929133858267775 446.4569291338582389 Td
+(2. Backend API & Cloud Database Infrastructure) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 425.1970866141731449 Td
+(Backend API Root:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 425.1970866141731449 Td
+(https://redzone-x.onrender.com/) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 412.4411811023621226 Td
+(Hosted on Render.com Cloud \(Node.js / Express micro-cached REST API\).) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 391.1813385826770855 Td
+(Health & Telemetry API:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 391.1813385826770855 Td
+(https://redzone-x.onrender.com/api/health) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 378.4254330708660632 Td
+(Live health check returning active MongoDB connection status, latency, and jurisdictions.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 357.1655905511810261 Td
+(Central Alerts API:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 357.1655905511810261 Td
+(https://redzone-x.onrender.com/api/alerts) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 344.4096850393700038 Td
+(Live database endpoint supporting GET, POST, and DELETE operations with MongoDB Atlas.) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.059 0.09 0.165 rg
+45.354330708661422 323.1498425196849666 Td
+(GitHub Repository:) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.008 0.518 0.78 rg
+184.2519685039370358 323.1498425196849666 Td
+(https://github.com/Manojpuchakayala/redzone_x) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.392 0.455 0.545 rg
+45.354330708661422 310.3939370078740012 Td
+(Full source code repository with automated Vercel & Render CI/CD deployment pipelines.) Tj
+ET
+0.86 0.15 0.15 rg
+39.6850393700787407 291.9687401574802266 8.5039370078740166 -19.8425196850393704 re
+f
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.059 0.09 0.165 rg
+56.6929133858267775 276.3781889763778281 Td
+(3. Platform Innovations & SIH Problem Statement Alignment) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 255.1183464566928478 Td
+(• Real-Time Satellite Imagery: High-res Esri orbital photography with 3-layer switcher \(Satellite, 3D Terrain, Street\).) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 240.9451181102361943 Td
+(• Turn-by-Turn GPS Navigator: Google Maps-style navigation HUD with Voice SOS audio and detour rerouting.) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 226.7718897637794271 Td
+(• Dynamic Road Blockade Switcher: Reroutes convoys via Elevated Ridge Bypass Lines when debris blocks roads.) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 212.5986614173227736 Td
+(• Sphere Humanitarian Standards: Guaranteed 45 LPCD drinking water and 3.5 m2/person shelter space quotas.) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 198.4254330708660063 Td
+(• Central Cloud Database: MongoDB Atlas \(consumer-trust-db.rxdifnq.mongodb.net\) with 3-second live sync.) Tj
+ET
+0.86 0.15 0.15 rg
+39.6850393700787407 187.0868503937007006 8.5039370078740166 -19.8425196850393704 re
+f
+BT
+/F2 13 Tf
+14.9499999999999993 TL
+0.059 0.09 0.165 rg
+56.6929133858267775 171.4962992125983874 Td
+(4. Offline Backup & 1-Click Desktop Launcher) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 150.2364566929132934 Td
+(• Backup Zip Archive: C:\\Users\\manoj\\Downloads\\RED-ZONE-X_Project.zip) Tj
+ET
+BT
+/F1 8.5 Tf
+9.7749999999999986 TL
+0.2 0.255 0.333 rg
+45.354330708661422 136.0632283464566399 Td
+(• 1-Click Windows Launcher: Unzip and double-click START_PROJECT.bat to launch everything locally.) Tj
+ET
+0.95 0.96 0.98 rg
+0. 34.0157480314960665 595.2799999999999727 -34.0157480314960665 re
+f
+BT
+/F2 8 Tf
+9.1999999999999993 TL
+0.392 0.455 0.545 rg
+39.6850393700787407 12.7559055118110791 Td
+(RED-ZONE X • National Disaster Decision Support Platform • SIH 2026 • All Rights Reserved) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R ]
+/Count 1
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+6 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 5 0 R
+/F2 6 0 R
+/F3 7 0 R
+/F4 8 0 R
+/F5 9 0 R
+/F6 10 0 R
+/F7 11 0 R
+/F8 12 0 R
+/F9 13 0 R
+/F10 14 0 R
+/F11 15 0 R
+/F12 16 0 R
+/F13 17 0 R
+/F14 18 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+19 0 obj
+<<
+/Producer (jsPDF 2.5.2)
+/CreationDate (D:20260829010820+05'30')
+>>
+endobj
+20 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 21
+0000000000 65535 f 
+0000010178 00000 n 
+0000011995 00000 n 
+0000000015 00000 n 
+0000002174 00000 n 
+0000010235 00000 n 
+0000010360 00000 n 
+0000010490 00000 n 
+0000010623 00000 n 
+0000010760 00000 n 
+0000010883 00000 n 
+0000011012 00000 n 
+0000011144 00000 n 
+0000011280 00000 n 
+0000011408 00000 n 
+0000011535 00000 n 
+0000011664 00000 n 
+0000011797 00000 n 
+0000011899 00000 n 
+0000012243 00000 n 
+0000012329 00000 n 
+trailer
+<<
+/Size 21
+/Root 20 0 R
+/Info 19 0 R
+/ID [ <8006DFA24E0A3B0A39A2E6ABD60F422A> <8006DFA24E0A3B0A39A2E6ABD60F422A> ]
+>>
+startxref
+12433
+%%EOF
